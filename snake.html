@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스네이크 게임</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            text-decoration: none;
+            background: #34495e;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 20;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        #top-bar {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        canvas {
+            background-color: #34495e;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(44, 62, 80, 0.95);
+            border-radius: 8px;
+            z-index: 10;
+        }
+
+        .overlay-screen h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            width: 220px;
+        }
+
+        .setting-group label {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #bdc3c7;
+        }
+
+        .setting-group select {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #ecf0f1;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .btn-action {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        
+        .btn-start { background-color: #2ecc71; box-shadow: 0 4px 0 #27ae60; }
+        .btn-start:active { transform: translateY(4px); box-shadow: 0 0 0 #27ae60; }
+
+        .btn-restart { background-color: #e74c3c; box-shadow: 0 4px 0 #c0392b; }
+        .btn-restart:active { transform: translateY(4px); box-shadow: 0 0 0 #c0392b; }
+
+        #controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 70px 70px 70px;
+            grid-template-rows: 70px 70px;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-pad {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #7f8c8d;
+        }
+
+        .btn-pad:active {
+            background-color: #7f8c8d;
+            box-shadow: 0 0 0 #7f8c8d;
+            transform: translateY(4px);
+        }
+
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">◀ 메인으로</a>
+
+    <div id="game-container">
+        
+        <div id="top-bar">
+            <span>⭐ <span id="score">0</span></span>
+            <span style="color: #f1c40f;">⏱️ <span id="time">00:00</span></span>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="start-screen" class="overlay-screen">
+            <h2 style="color: #2ecc71;">뱀 키우기 설정</h2>
+            
+            <div class="setting-group">
+                <label>맵 크기</label>
+                <select id="size-select">
+                    <option value="10">작음 (10x10)</option>
+                    <option value="15" selected>보통 (15x15)</option>
+                    <option value="20">큼 (20x20)</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label>이동 속도</label>
+                <select id="speed-select">
+                    <option value="5">느림 (초보자용)</option>
+                    <option value="8" selected>보통</option>
+                    <option value="13">빠름 (고수용)</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label>사과 개수</label>
+                <select id="apple-select">
+                    <option value="1" selected>1개씩 등장</option>
+                    <option value="3">3개씩 등장</option>
+                    <option value="5">5개씩 등장</option>
+                </select>
+            </div>
+
+            <button class="btn-action btn-start" onclick="startGame()">게임 시작</button>
+        </div>
+
+        <div id="result-screen" class="overlay-screen" style="display: none;">
+            <h2 id="result-title" style="font-size: 32px;">게임 오버</h2>
+            <p id="result-desc" style="font-size: 16px; line-height: 1.6; text-align: center; color: #ecf0f1; margin-bottom: 25px;"></p>
+            <button class="btn-action btn-restart" onclick="showSettings()">설정으로 돌아가기</button>
+        </div>
+
+        <div id="controls">
+            <div class="btn-pad" id="btn-up">▲</div>
+            <div class="btn-pad" id="btn-left">◀</div>
+            <div class="btn-pad" id="btn-down">▼</div>
+            <div class="btn-pad" id="btn-right">▶</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const timeElement = document.getElementById("time");
+        
+        const startScreen = document.getElementById("start-screen");
+        const resultScreen = document.getElementById("result-screen");
+        const resultTitle = document.getElementById("result-title");
+        const resultDesc = document.getElementById("result-desc");
+
+        let gameLoopTimer;
+        let tileCount = 15; 
+        let gridSize; 
+        let speed = 8; 
+        let maxApples = 1;
+
+        let snake = [];
+        let dx = 0; 
+        let dy = 0; 
+        let foods = []; 
+        let score = 0;
+        
+        // 키 씹힘 방지용 입력 버퍼(큐)
+        let directionQueue = []; 
+
+        let timerInterval;
+        let startTime = 0;
+
+        function resizeCanvas() {
+            let size = Math.min(window.innerWidth - 20, window.innerHeight - 320); 
+            if (size > 500) size = 500; 
+            
+            gridSize = Math.floor(size / tileCount);
+            canvas.width = gridSize * tileCount;
+            canvas.height = gridSize * tileCount;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function showSettings() {
+            resultScreen.style.display = "none";
+            startScreen.style.display = "flex";
+        }
+
+        function updateTime() {
+            let now = Date.now();
+            let diffSeconds = Math.floor((now - startTime) / 1000);
+            let m = String(Math.floor(diffSeconds / 60)).padStart(2, '0');
+            let s = String(diffSeconds % 60).padStart(2, '0');
+            timeElement.innerText = m + ":" + s;
+        }
+
+        function startGame() {
+            clearTimeout(gameLoopTimer); 
+            clearInterval(timerInterval);
+            
+            startScreen.style.display = "none"; 
+            resultScreen.style.display = "none";
+
+            speed = parseFloat(document.getElementById("speed-select").value);
+            maxApples = parseInt(document.getElementById("apple-select").value);
+            tileCount = parseInt(document.getElementById("size-select").value);
+
+            resizeCanvas();
+
+            snake = [{x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2)}];
+            dx = 0;
+            dy = 0;
+            score = 0;
+            scoreElement.innerHTML = score;
+            foods = [];
+            directionQueue = []; // 게임 시작 시 버퍼 비우기
+            
+            timeElement.innerText = "00:00";
+            startTime = 0; 
+            
+            generateFood();
+            main();
+        }
+
+        function generateFood() {
+            let emptySpots = [];
+            for(let r=0; r<tileCount; r++) {
+                for(let c=0; c<tileCount; c++) {
+                    let onSnake = snake.some(p => p.x === c && p.y === r);
+                    let onFood = foods.some(f => f.x === c && f.y === r);
+                    if (!onSnake && !onFood) {
+                        emptySpots.push({x: c, y: r});
+                    }
+                }
+            }
+            
+            while (foods.length < maxApples && emptySpots.length > 0) {
+                let randIndex = Math.floor(Math.random() * emptySpots.length);
+                foods.push(emptySpots[randIndex]);
+                emptySpots.splice(randIndex, 1); 
+            }
+        }
+
+        // 입력 버퍼에서 꺼내서 뱀 방향 적용
+        function processDirectionQueue() {
+            if (directionQueue.length > 0) {
+                let direction = directionQueue.shift(); // 큐에서 가장 먼저 들어온 방향 꺼내기
+                
+                const goingUp = dy === -1;
+                const goingDown = dy === 1;
+                const goingRight = dx === 1;
+                const goingLeft = dx === -1;
+
+                // 유효한 방향인지(반대 방향은 무시) 확인 후 적용
+                if (direction === 'LEFT' && !goingRight) { dx = -1; dy = 0; }
+                else if (direction === 'UP' && !goingDown) { dx = 0; dy = -1; }
+                else if (direction === 'RIGHT' && !goingLeft) { dx = 1; dy = 0; }
+                else if (direction === 'DOWN' && !goingUp) { dx = 0; dy = 1; }
+                else {
+                    // 유효하지 않은 입력(예: 오른쪽 가는데 왼쪽 누름)이면 버퍼의 다음 키를 즉시 검사
+                    processDirectionQueue(); 
+                }
+            }
+        }
+
+        function main() {
+            if (hasGameEnded()) {
+                endGame(false);
+                return;
+            }
+
+            if (snake.length >= tileCount * tileCount) {
+                endGame(true);
+                return;
+            }
+
+            gameLoopTimer = setTimeout(function() {
+                processDirectionQueue(); // 이동하기 직전에 버퍼에 쌓인 방향키 확인
+                clearCanvas();
+                drawFood();
+                advanceSnake();
+                drawSnake();
+                main();
+            }, 1000 / speed);
+        }
+
+        function endGame(isPerfectClear) {
+            clearInterval(timerInterval); 
+            resultScreen.style.display = "flex";
+            
+            let finalTime = timeElement.innerText;
+            let totalTiles = tileCount * tileCount;
+            let fillPercent = Math.floor((snake.length / totalTiles) * 100);
+
+            if (isPerfectClear) {
+                resultTitle.innerText = "🎉 퍼펙트 클리어! 🎉";
+                resultTitle.style.color = "#f1c40f";
+                resultDesc.innerHTML = `전설의 진(眞) 엔딩을 보셨습니다!<br>맵을 빈틈없이 100% 채웠습니다.<br><br>최종 점수: <span style="color:#2ecc71; font-weight:bold;">${score}</span> 점<br>소요 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
+            } else {
+                resultTitle.innerText = "게임 오버";
+                resultTitle.style.color = "#e74c3c";
+                resultDesc.innerHTML = `아쉽네요! 몸이 꼬였거나 벽에 부딪혔습니다.<br>맵 채우기 달성률: ${fillPercent}% (${snake.length}/${totalTiles}칸)<br><br>최종 점수: <span style="color:#2ecc71; font-weight:bold;">${score}</span> 점<br>생존 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
+            }
+        }
+
+        function clearCanvas() {
+            for (let row = 0; row < tileCount; row++) {
+                for (let col = 0; col < tileCount; col++) {
+                    if ((row + col) % 2 === 0) ctx.fillStyle = '#34495e'; 
+                    else ctx.fillStyle = '#2c3e50'; 
+                    ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
+                }
+            }
+        }
+
+        function drawFood() {
+            ctx.fillStyle = '#e74c3c';
+            foods.forEach(food => {
+                ctx.beginPath();
+                ctx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, gridSize/2.5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                ctx.fillStyle = index === 0 ? '#2ecc71' : '#27ae60'; 
+                ctx.strokeStyle = '#2c3e50';
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+                ctx.lineWidth = 1;
+                ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+            });
+        }
+
+        function advanceSnake() {
+            if (dx === 0 && dy === 0) return; 
+
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head); 
+
+            let eatenFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+
+            if (eatenFoodIndex > -1) {
+                score += 10;
+                scoreElement.innerHTML = score;
+                foods.splice(eatenFoodIndex, 1);
+                generateFood();
+            } else {
+                snake.pop(); 
+            }
+        }
+
+        function hasGameEnded() {
+            if (dx === 0 && dy === 0) return false; 
+
+            for (let i = 4; i < snake.length; i++) {
+                if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
+            }
+
+            const hitLeftWall = snake[0].x < 0;
+            const hitRightWall = snake[0].x >= tileCount;
+            const hitToptWall = snake[0].y < 0;
+            const hitBottomWall = snake[0].y >= tileCount;
+
+            return hitLeftWall || hitRightWall || hitToptWall || hitBottomWall;
+        }
+
+        // 입력 큐(버퍼)에 방향키 밀어넣기
+        function changeDirection(direction) {
+            // 한 번에 무한정 큐가 쌓이는 것을 방지 (최대 3개까지만 예약)
+            if (directionQueue.length < 3) {
+                directionQueue.push(direction);
+            }
+            
+            // 처음 방향키를 누르는 순간 스톱워치 가동
+            if (dx === 0 && dy === 0 && startTime === 0 && directionQueue.length === 1) {
+                startTime = Date.now();
+                timerInterval = setInterval(updateTime, 1000);
+            }
+        }
+
+        document.addEventListener("keydown", (event) => {
+            const LEFT_KEY = 37, RIGHT_KEY = 39, UP_KEY = 38, DOWN_KEY = 40;
+            const W_KEY = 87, A_KEY = 65, S_KEY = 83, D_KEY = 68;
+            const keyPressed = event.keyCode;
+
+            if (keyPressed === LEFT_KEY || keyPressed === A_KEY) changeDirection('LEFT');
+            if (keyPressed === UP_KEY || keyPressed === W_KEY) changeDirection('UP');
+            if (keyPressed === RIGHT_KEY || keyPressed === D_KEY) changeDirection('RIGHT');
+            if (keyPressed === DOWN_KEY || keyPressed === S_KEY) changeDirection('DOWN');
+        });
+
+        function addTouchControl(id, direction) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(direction); });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); changeDirection(direction); });
+        }
+
+        addTouchControl('btn-up', 'UP');
+        addTouchControl('btn-left', 'LEFT');
+        addTouchControl('btn-down', 'DOWN');
+        addTouchControl('btn-right', 'RIGHT');
+
+        resizeCanvas();
+        clearCanvas();
+    </script>
+</body>
+</html>

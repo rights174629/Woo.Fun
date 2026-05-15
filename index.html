@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woo.Fun</title>
+    <style>
+        /* 전체 페이지 기본 설정 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f5f7; /* 부드러운 배경색 */
+            color: #333;
+        }
+
+        /* 상단 헤더 영역 (타이틀) */
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            color: #2c3e50;
+            letter-spacing: -1px;
+        }
+
+        header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        /* 게임들을 나열할 그리드 영역 */
+        .game-grid {
+            display: grid;
+            /* 화면 크기에 맞춰 카드 개수를 자동으로 조절 */
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        /* 개별 게임 카드 디자인 */
+        .game-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            text-decoration: none; /* 링크 밑줄 제거 */
+            color: inherit;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+            transition: all 0.3s ease; /* 호버 시 부드러운 애니메이션 */
+            border: 2px solid transparent;
+        }
+
+        /* 카드에 마우스를 올렸을 때 효과 */
+        .game-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-color: #3498db; /* 테두리 색상 변화 */
+        }
+
+        /* 카드 내 아이콘 및 텍스트 스타일 */
+        .card-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: #95a5a6;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* 곧 추가될 게임(비활성화) 스타일 */
+        .game-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+        
+        .game-card.disabled:hover {
+            transform: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎮Games</h1>
+        <p>심심할 때 가볍게 즐기는 웹 미니게임 모음</p>
+    </header>
+
+    <main class="game-grid">
+        <!-- 1. 스네이크 게임 링크 (아까 만든 파일로 연결) -->
+        <a href="snake.html" class="game-card">
+            <span class="card-icon">🐍</span>
+            <h2 class="card-title">스네이크 게임</h2>
+            <p class="card-desc">추억의 뱀 꼬리 늘리기! 사과를 먹고 길이를 최대한 늘려보세요.</p>
+        </a>
+
+        <a href="brick.html" class="game-card">
+            <span class="card-icon">🧱</span>
+            <h2 class="card-title">벽돌 깨기</h2>
+            <p class="card-desc">스트레스를 날려버릴 짜릿한 벽돌 깨기 게임입니다.</p>
+        </a>
+
+        <a href="dinogame.html" class="game-card">
+            <span class="card-icon">🦖</span>
+            <h2 class="card-title">티렉스 런</h2>
+            <p class="card-desc">인터넷이 끊겼을 때 하던 바로 그 공룡 달리기 게임!</p>
+        </a>
+        
+        <a href="#" class="game-card disabled" onclick="alert('아직 개발 중인 게임입니다! 조금만 기다려주세요.')">
+            <span class="card-icon">🧩</span>
+            <h2 class="card-title">2048 퍼즐</h2>
+            <p class="card-desc">Coming Soon. 숫자를 합쳐 2048을 완성하는 두뇌 회전 퍼즐.</p>
+        </a>
+    </main>
+
+</body>
+</html>

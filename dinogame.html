@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>티렉스 런 (대형 화면 & 풀 커스텀)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            color: #535353;
+            font-family: 'Courier New', Courier, monospace, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            text-decoration: none;
+            background: #535353;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 20;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 1000px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        #score-board {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 20px;
+            box-sizing: border-box;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        #high-score {
+            color: #888;
+            margin-right: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 10 / 4; 
+            background-color: #f7f7f7;
+            border-bottom: 2px solid #535353;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+
+        #mobile-controls {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            gap: 10px;
+            padding: 15px 20px;
+            box-sizing: border-box;
+        }
+
+        .control-btn {
+            flex: 1;
+            background-color: #e0e0e0;
+            color: #333;
+            border: 2px solid #bbb;
+            border-radius: 12px;
+            padding: 20px 0;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            user-select: none;
+            -webkit-touch-callout: none;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #bbb;
+        }
+
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #bbb;
+            background-color: #d0d0d0;
+        }
+
+        .overlay-screen {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 140px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(247, 247, 247, 0.85);
+            z-index: 10;
+        }
+
+        .overlay-screen h2 {
+            margin: 0 0 15px 0;
+            font-size: 32px;
+            color: #535353;
+        }
+
+        .btn {
+            background-color: #535353;
+            color: white;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #333;
+            transition: transform 0.1s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #333;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">◀ 메인으로</a>
+
+    <div id="game-container">
+        <div id="score-board">
+            <span id="high-score">HI 00000</span>
+            <span id="score">00000</span>
+        </div>
+        
+        <canvas id="gameCanvas" width="1000" height="400"></canvas>
+        
+        <div id="mobile-controls">
+            <div id="btn-duck" class="control-btn">▼ 숙이기 (S, Ctrl)</div>
+            <div id="btn-jump" class="control-btn">▲ 점프 (W, Space)</div>
+        </div>
+
+        <div id="start-screen" class="overlay-screen">
+            <h2>티렉스 런</h2>
+            <p style="color: #888; font-family: 'Segoe UI', sans-serif; margin-bottom: 20px;">스페이스바, W, 화살표 위 버튼으로 점프<br>Ctrl, S, 화살표 아래 버튼으로 숙이기</p>
+            <button class="btn" onclick="startGame()">게임 시작</button>
+        </div>
+
+        <div id="game-over-screen" class="overlay-screen" style="display: none;">
+            <h2>GAME OVER</h2>
+            <button class="btn" onclick="startGame()">다시 달리기</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const highScoreElement = document.getElementById("high-score");
+        
+        const startScreen = document.getElementById("start-screen");
+        const gameOverScreen = document.getElementById("game-over-screen");
+
+        // 💡 이미지 파일명 변경 반영
+        const dinoUpImg = new Image(); dinoUpImg.src = 'DinoUp.png';
+        const dinoDownImg = new Image(); dinoDownImg.src = 'DinoDown.png';
+        const cactusImg = new Image(); cactusImg.src = 'Cactus.png';
+        const birdImg = new Image(); birdImg.src = 'Bird.png';
+
+        dinoUpImg.onload = () => {
+            if (!isPlaying) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGround();
+                dino.draw();
+            }
+        };
+
+        let animationId;
+        let isPlaying = false;
+        
+        let score = 0;
+        let highScore = localStorage.getItem("trexHighScore") || 0;
+        highScoreElement.innerText = "HI " + String(Math.floor(highScore)).padStart(5, '0');
+
+        let gameSpeed = 5.5; 
+        let frameCount = 0;
+
+        const groundY = 330; 
+
+        const dino = {
+            x: 60,
+            w: 56, 
+            h: 56, 
+            y: 0, 
+            dy: 0,
+            gravity: 0.6, 
+            jumpPower: -18, 
+            isJumping: false,
+            isDucking: false,
+            
+            init() {
+                this.y = groundY - this.h;
+                this.dy = 0;
+                this.isJumping = false;
+                this.isDucking = false;
+            },
+
+            update() {
+                if (this.isJumping && this.isDucking) {
+                    this.dy += this.gravity * 3.5; 
+                } else if (this.isJumping) {
+                    this.dy += this.gravity;
+                }
+                
+                this.y += this.dy;
+
+                if (this.y + this.h >= groundY) {
+                    this.y = groundY - this.h;
+                    this.dy = 0;
+                    this.isJumping = false;
+                }
+                
+                this.draw();
+            },
+            
+            draw() {
+                let img = (this.isDucking && !this.isJumping) ? dinoDownImg : dinoUpImg;
+                
+                if (img.complete && img.naturalHeight !== 0) {
+                    ctx.drawImage(img, this.x, this.y, this.w, this.h);
+                } else {
+                    ctx.fillStyle = "#535353";
+                    ctx.fillRect(this.x, this.y, this.w, (this.isDucking && !this.isJumping) ? this.h/2 : this.h);
+                }
+            },
+
+            jump() {
+                if (!this.isJumping) {
+                    this.isJumping = true;
+                    this.dy = this.jumpPower;
+                }
+            },
+
+            getHitBox() {
+                if (this.isDucking && !this.isJumping) {
+                    return { x: this.x + 5, y: this.y + 28, w: this.w - 10, h: 28 };
+                } else {
+                    return { x: this.x + 8, y: this.y + 5, w: this.w - 16, h: this.h - 10 };
+                }
+            }
+        };
+
+        let obstacles = [];
+        let clouds = [];
+
+        class Obstacle {
+            constructor() {
+                this.type = (score >= 5 && Math.random() > 0.7) ? 'bird' : 'cactus';
+                this.x = canvas.width;
+                this.passed = false; 
+
+                if (this.type === 'cactus') {
+                    this.w = Math.random() > 0.5 ? 50 : 75; 
+                    this.h = Math.random() > 0.5 ? 70 : 100; 
+                    this.y = groundY - this.h;
+                } else {
+                    this.w = 56;
+                    this.h = 40;
+                    // 💡 새 비행 높이 하향 조정 (groundY - 95 -> groundY - 75)
+                    // 서 있으면 부딪히고, 숙이면 피할 수 있는 절묘한 높이입니다.
+                    this.y = groundY - 75; 
+                }
+            }
+
+            update() {
+                this.x -= gameSpeed;
+                this.draw();
+            }
+
+            draw() {
+                if (this.type === 'cactus') {
+                    if (cactusImg.complete && cactusImg.naturalHeight !== 0) {
+                        ctx.drawImage(cactusImg, this.x, this.y, this.w, this.h);
+                    } else {
+                        ctx.fillStyle = "#27ae60";
+                        ctx.fillRect(this.x, this.y, this.w, this.h);
+                    }
+                } else {
+                    if (birdImg.complete && birdImg.naturalHeight !== 0) {
+                        let flapY = (frameCount % 30 < 15) ? -3 : 3; 
+                        ctx.drawImage(birdImg, this.x, this.y + flapY, this.w, this.h);
+                    } else {
+                        ctx.fillStyle = "#e74c3c";
+                        let flap = (frameCount % 20 < 10) ? -8 : 8; 
+                        ctx.fillRect(this.x, this.y + 15, this.w, 15); 
+                        ctx.fillRect(this.x + 10, this.y + 15 + flap, 20, 10); 
+                    }
+                }
+            }
+        }
+
+        class Cloud {
+            constructor() {
+                this.x = canvas.width;
+                this.y = Math.random() * 120 + 30; 
+                this.w = 60;
+                this.h = 20;
+                this.speed = Math.random() * 0.5 + 1; 
+            }
+            update() {
+                this.x -= this.speed;
+                this.draw();
+            }
+            draw() {
+                ctx.fillStyle = "#e0e0e0";
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.fillRect(this.x + 15, this.y - 10, 30, 15);
+            }
+        }
+
+        function drawGround() {
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.strokeStyle = "#535353";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = "#888";
+            for(let i=0; i<15; i++){
+                let nx = ((frameCount * 2) + i * 90) % canvas.width;
+                ctx.fillRect(canvas.width - nx, groundY + 5 + (i%3)*5, 4, 3);
+            }
+        }
+
+        function checkCollision(obstacle) {
+            const hitBox = dino.getHitBox();
+            const padding = 5; 
+
+            if (hitBox.x + padding < obstacle.x + obstacle.w &&
+                hitBox.x + hitBox.w - padding > obstacle.x &&
+                hitBox.y + padding < obstacle.y + obstacle.h &&
+                hitBox.y + hitBox.h - padding > obstacle.y) {
+                return true;
+            }
+            return false;
+        }
+
+        function animate() {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGround();
+
+            // 💡 속도 증가율 대폭 완화 (기존 0.08 -> 0.03)
+            // 이제 훨씬 느린 페이스로 서서히 속도가 오릅니다.
+            gameSpeed = Math.min(5.5 + (score * 0.03), 18);
+
+            if (frameCount % 180 === 0 || (frameCount === 0 && Math.random() > 0.5)) {
+                clouds.push(new Cloud());
+            }
+            clouds.forEach((cloud, index) => {
+                cloud.update();
+                if (cloud.x + cloud.w < 0) clouds.splice(index, 1);
+            });
+
+            let lastObs = obstacles[obstacles.length - 1];
+            let minDistance = 450 + (gameSpeed * 12) + Math.random() * 200; 
+            
+            if (!lastObs || canvas.width - lastObs.x > minDistance) {
+                if (Math.random() > 0.96) { 
+                    obstacles.push(new Obstacle());
+                }
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.update();
+                
+                if (!obstacle.passed && obstacle.x + obstacle.w < dino.x) {
+                    obstacle.passed = true;
+                    score++;
+                    scoreElement.innerText = String(score).padStart(5, '0');
+                }
+
+                if (checkCollision(obstacle)) {
+                    gameOver();
+                }
+
+                if (obstacle.x + obstacle.w < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+
+            dino.update();
+            frameCount++;
+            animationId = requestAnimationFrame(animate);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { 
+                e.preventDefault(); 
+                dino.jump(); 
+            }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ControlLeft' || e.code === 'ControlRight') { 
+                e.preventDefault(); 
+                dino.isDucking = true; 
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ControlLeft' || e.code === 'ControlRight') { 
+                dino.isDucking = false; 
+            }
+        });
+
+        const btnJump = document.getElementById('btn-jump');
+        const btnDuck = document.getElementById('btn-duck');
+
+        function bindButton(btn, onDown, onUp) {
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); onDown(); });
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
+            btn.addEventListener('mouseup', (e) => { e.preventDefault(); onUp(); });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); });
+        }
+
+        bindButton(btnJump, () => { if(isPlaying) dino.jump(); }, () => {});
+        bindButton(btnDuck, () => { if(isPlaying) dino.isDucking = true; }, () => { dino.isDucking = false; });
+
+        function startGame() {
+            startScreen.style.display = "none";
+            gameOverScreen.style.display = "none";
+            
+            obstacles = [];
+            clouds = [];
+            score = 0;
+            scoreElement.innerText = String(score).padStart(5, '0');
+            gameSpeed = 5.5;
+            frameCount = 0;
+            
+            dino.init();
+            isPlaying = true;
+            animate();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("trexHighScore", highScore);
+                highScoreElement.innerText = "HI " + String(highScore).padStart(5, '0');
+            }
+            gameOverScreen.style.display = "flex";
+        }
+
+        dino.init();
+    </script>
+</body>
+</html>
