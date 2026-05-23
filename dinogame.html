@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>티렉스 런 (대형 화면 & 풀 커스텀)</title>
+    <title>티렉스 런 (대형 화면 & 스피드 업)</title>
     <style>
         body {
             margin: 0;
@@ -180,7 +180,6 @@
         const startScreen = document.getElementById("start-screen");
         const gameOverScreen = document.getElementById("game-over-screen");
 
-        // 💡 이미지 파일명 변경 반영
         const dinoUpImg = new Image(); dinoUpImg.src = 'DinoUp.png';
         const dinoDownImg = new Image(); dinoDownImg.src = 'DinoDown.png';
         const cactusImg = new Image(); cactusImg.src = 'Cactus.png';
@@ -201,7 +200,8 @@
         let highScore = localStorage.getItem("trexHighScore") || 0;
         highScoreElement.innerText = "HI " + String(Math.floor(highScore)).padStart(5, '0');
 
-        let gameSpeed = 5.5; 
+        // 💡 초기 속도 대폭 상향 (기존 5.5 -> 7.5)
+        let gameSpeed = 7.5; 
         let frameCount = 0;
 
         const groundY = 330; 
@@ -213,7 +213,8 @@
             y: 0, 
             dy: 0,
             gravity: 0.6, 
-            jumpPower: -18, 
+            // 💡 점프력 20% 하향 (기존 -18 -> -14.4)
+            jumpPower: -14.4, 
             isJumping: false,
             isDucking: false,
             
@@ -280,13 +281,12 @@
 
                 if (this.type === 'cactus') {
                     this.w = Math.random() > 0.5 ? 50 : 75; 
-                    this.h = Math.random() > 0.5 ? 70 : 100; 
+                    // 점프력이 낮아졌으므로 선인장 최대 높이를 살짝 완화하여 피할 수 있게 보정
+                    this.h = Math.random() > 0.5 ? 65 : 85; 
                     this.y = groundY - this.h;
                 } else {
                     this.w = 56;
                     this.h = 40;
-                    // 💡 새 비행 높이 하향 조정 (groundY - 95 -> groundY - 75)
-                    // 서 있으면 부딪히고, 숙이면 피할 수 있는 절묘한 높이입니다.
                     this.y = groundY - 75; 
                 }
             }
@@ -371,9 +371,8 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGround();
 
-            // 💡 속도 증가율 대폭 완화 (기존 0.08 -> 0.03)
-            // 이제 훨씬 느린 페이스로 서서히 속도가 오릅니다.
-            gameSpeed = Math.min(5.5 + (score * 0.03), 18);
+            // 💡 베이스 속도가 높아졌으므로 수식 반영 (7.5 시작, 최대 속도 20까지 허용)
+            gameSpeed = Math.min(7.5 + (score * 0.04), 20);
 
             if (frameCount % 180 === 0 || (frameCount === 0 && Math.random() > 0.5)) {
                 clouds.push(new Cloud());
@@ -384,7 +383,8 @@
             });
 
             let lastObs = obstacles[obstacles.length - 1];
-            let minDistance = 450 + (gameSpeed * 12) + Math.random() * 200; 
+            // 속도가 빨라진 만큼 장애물간 간격도 넓혀서 억까 방지
+            let minDistance = 400 + (gameSpeed * 15) + Math.random() * 200; 
             
             if (!lastObs || canvas.width - lastObs.x > minDistance) {
                 if (Math.random() > 0.96) { 
@@ -453,7 +453,8 @@
             clouds = [];
             score = 0;
             scoreElement.innerText = String(score).padStart(5, '0');
-            gameSpeed = 5.5;
+            // 💡 시작 시 초기화 속도도 상향
+            gameSpeed = 7.5;
             frameCount = 0;
             
             dino.init();
