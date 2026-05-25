@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>똥피하기 대작전 (파멸의 일격 패치)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #87CEEB; 
+            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            text-decoration: none;
+            background: #333;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        #score-board {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            box-sizing: border-box;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 3 / 4; 
+            background-color: #f1f2f6;
+            border: 4px solid #576574;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            image-rendering: pixelated; 
+        }
+
+        #mobile-controls {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+            margin-top: 15px;
+            box-sizing: border-box;
+        }
+
+        .control-btn {
+            flex: 1;
+            background-color: #ff9f43;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            user-select: none;
+            -webkit-touch-callout: none;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #c8d6e5;
+        }
+
+        .control-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #c8d6e5;
+        }
+
+        .overlay-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 450px;
+            height: 60%;
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .overlay-screen h2 {
+            margin: 0 0 15px 0;
+            font-size: 36px;
+            color: #f1c40f;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .btn {
+            background-color: #ee5253;
+            color: white;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b33939;
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #b33939;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">◀ 메인으로</a>
+
+    <div id="game-container">
+        <div id="score-board">
+            <span>최고 점수: <span id="high-score">0</span></span>
+            <span>점수: <span id="score">0</span></span>
+        </div>
+        
+        <canvas id="gameCanvas" width="900" height="1200"></canvas>
+        
+        <div id="mobile-controls">
+            <div id="btn-left" class="control-btn">◀ 좌측</div>
+            <div id="btn-right" class="control-btn">우측 ▶</div>
+        </div>
+
+        <div id="start-screen" class="overlay-screen">
+            <h2>똥피하기</h2>
+            <p style="margin-bottom: 10px; font-size: 18px;">방향키(◀ ▶) 또는 A/D로 움직이세요!</p>
+            <p style="margin-bottom: 5px; font-size: 14px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
+            <p style="margin-bottom: 25px; font-size: 14px; color:#e74c3c; font-weight:bold;">경고: 2000점부터 파멸의 똥이 내리꽂힙니다!</p>
+            <button class="btn" onclick="startGame()">게임 시작</button>
+        </div>
+
+        <div id="game-over-screen" class="overlay-screen" style="display: none;">
+            <h2 style="color: #ff6b6b;">GAME OVER</h2>
+            <p id="final-score" style="font-size: 22px; margin-bottom: 20px; font-weight: bold;">최종 점수: 0</p>
+            <button class="btn" onclick="startGame()">다시 도전</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const highScoreElement = document.getElementById("high-score");
+        
+        const startScreen = document.getElementById("start-screen");
+        const gameOverScreen = document.getElementById("game-over-screen");
+        const finalScoreElement = document.getElementById("final-score");
+
+        const playerImg = new Image(); playerImg.src = 'Poo_Ch.png';
+        const playerUmbImg = new Image(); playerUmbImg.src = 'Poo_Ch_Umb.png';
+        const poopImg = new Image(); poopImg.src = 'Poo.png';
+        const umbImg = new Image(); umbImg.src = 'Umbrella.png';
+
+        let animationId;
+        let isPlaying = false;
+        
+        let score = 0;
+        let highScore = localStorage.getItem("pooHighScore") || 0;
+        highScoreElement.innerText = highScore;
+
+        let frameCount = 0;
+        let spawnRate = 45; 
+
+        let keys = {
+            left: false,
+            right: false
+        };
+
+        const tileSize = 96; 
+
+        const player = {
+            w: tileSize,
+            h: tileSize,
+            x: canvas.width / 2 - tileSize / 2, 
+            y: canvas.height - tileSize - 30, 
+            speed: 5, 
+            hasUmbrella: false,
+            umbrellaEndTime: 0,
+            
+            update() {
+                if (keys.left) this.x -= this.speed;
+                if (keys.right) this.x += this.speed;
+
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+
+                this.draw();
+            },
+            
+            draw() {
+                let currentImg = playerImg;
+
+                if (this.hasUmbrella) {
+                    let timeLeft = this.umbrellaEndTime - Date.now();
+                    
+                    if (timeLeft > 0) {
+                        if (timeLeft <= 1000) {
+                            if (Math.floor(timeLeft / 200) % 2 === 0) {
+                                currentImg = playerImg; 
+                            } else {
+                                currentImg = playerUmbImg; 
+                            }
+                        } else {
+                            currentImg = playerUmbImg;
+                        }
+                    } else {
+                        this.hasUmbrella = false;
+                    }
+                }
+
+                if (currentImg.complete && currentImg.naturalHeight !== 0) {
+                    ctx.drawImage(currentImg, this.x, this.y, this.w, this.h);
+                } else {
+                    ctx.fillStyle = this.hasUmbrella ? "#f1c40f" : "#3498db";
+                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                }
+            },
+
+            equipUmbrella() {
+                this.hasUmbrella = true;
+                this.umbrellaEndTime = Date.now() + 6000;
+            }
+        };
+
+        playerImg.onload = () => {
+            if (!isPlaying) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                player.draw();
+            }
+        };
+
+        let poops = [];
+        let items = [];
+        let meteors = []; // 💡 파멸의 똥 배열 추가
+
+        class Poop {
+            constructor() {
+                this.w = 72;
+                this.h = 72;
+                this.x = Math.random() * (canvas.width - this.w);
+                this.y = -this.h; 
+                this.speed = Math.random() * 2 + 3.5 + (score / 1500); 
+                
+                this.isBouncing = false;
+                this.vx = 0; 
+                this.gravity = 0.8; 
+            }
+            update() {
+                if (this.isBouncing) {
+                    this.speed += this.gravity;
+                    this.x += this.vx;
+                }
+                this.y += this.speed;
+                this.draw();
+            }
+            draw() {
+                if (poopImg.complete && poopImg.naturalHeight !== 0) {
+                    ctx.drawImage(poopImg, this.x, this.y, this.w, this.h);
+                } else {
+                    ctx.fillStyle = "#8B4513";
+                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                }
+            }
+            bounce() {
+                this.isBouncing = true;
+                this.speed = -18; 
+                this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 5 + 5);
+            }
+        }
+
+        // 💡 둠피스트 '파멸의 똥' 클래스
+        class MeteorStrike {
+            constructor(targetX) {
+                this.w = 72;
+                this.h = 72;
+                // 플레이어가 서 있던 중앙 X 좌표를 추적해서 꽂힘
+                this.x = targetX - this.w / 2; 
+                
+                // 화면 밖으로 나가지 않게 보정
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+
+                this.y = -this.h; 
+                this.state = 'warning'; // 'warning'(경고), 'strike'(낙하), 'done'(종료)
+                
+                // 경고(깜빡임) 지속 시간 (대략 1.5초 = 90프레임)
+                this.maxTimer = 90;
+                this.timer = this.maxTimer; 
+                
+                // 일반 똥보다 압도적으로 빠른 총알 속도!
+                this.speed = 35; 
+                
+                // 튕겨내기 모션 변수
+                this.isBouncing = false;
+                this.vx = 0;
+                this.gravity = 0.8;
+            }
+
+            update() {
+                if (this.state === 'warning') {
+                    this.timer--;
+                    if (this.timer <= 0) {
+                        this.state = 'strike'; // 타이머 끝나면 바로 꽂힘
+                    }
+                } else if (this.state === 'strike') {
+                    if (this.isBouncing) {
+                        this.speed += this.gravity;
+                        this.x += this.vx;
+                    }
+                    this.y += this.speed;
+                    
+                    // 화면 밖으로 나가면 상태를 done으로 변경
+                    if (this.y > canvas.height || this.x < -100 || this.x > canvas.width + 100) {
+                        this.state = 'done';
+                    }
+                }
+                this.draw();
+            }
+
+            draw() {
+                if (this.state === 'warning') {
+                    // 시간이 줄어들수록(t가 0에 가까워질수록) 깜빡이는 간격이 엄청 짧아짐
+                    let t = this.timer / this.maxTimer;
+                    let blinkInterval = Math.max(2, Math.floor(t * 15));
+                    
+                    if (frameCount % blinkInterval < Math.max(1, blinkInterval / 2)) {
+                        // 투명한 넓은 빨간 줄
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                        ctx.fillRect(this.x + this.w/2 - 15, 0, 30, canvas.height);
+                        // 진한 얇은 뼈대 빨간 줄
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                        ctx.fillRect(this.x + this.w/2 - 3, 0, 6, canvas.height);
+                    }
+                } else if (this.state === 'strike') {
+                    // 낙하 중에는 일반 똥과 같은 이미지로 렌더링
+                    if (poopImg.complete && poopImg.naturalHeight !== 0) {
+                        ctx.drawImage(poopImg, this.x, this.y, this.w, this.h);
+                    } else {
+                        ctx.fillStyle = "#c0392b"; // 안 불러와졌을 땐 시뻘건 네모
+                        ctx.fillRect(this.x, this.y, this.w, this.h);
+                    }
+                }
+            }
+
+            bounce() {
+                this.isBouncing = true;
+                this.speed = -25; // 튕겨나갈 때도 훨씬 강하게 튕겨나감
+                this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 8 + 5);
+            }
+        }
+
+        class Item {
+            constructor() {
+                this.w = tileSize;
+                this.h = tileSize;
+                this.x = Math.random() * (canvas.width - this.w);
+                this.y = -this.h; 
+                this.speed = 4; 
+            }
+            update() {
+                this.y += this.speed;
+                this.draw();
+            }
+            draw() {
+                if (umbImg.complete && umbImg.naturalHeight !== 0) {
+                    ctx.drawImage(umbImg, this.x, this.y, this.w, this.h);
+                } else {
+                    ctx.fillStyle = "#2ecc71";
+                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                }
+            }
+        }
+
+        function checkCollision(obj1, obj2) {
+            const padding = 12; 
+            if (obj1.x + padding < obj2.x + obj2.w - padding &&
+                obj1.x + obj1.w - padding > obj2.x + padding &&
+                obj1.y + padding < obj2.y + obj2.h - padding &&
+                obj1.y + obj1.h - padding > obj2.y + padding) {
+                return true;
+            }
+            return false;
+        }
+
+        function animate() {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            score++;
+            if (score % 10 === 0) {
+                scoreElement.innerText = score;
+            }
+
+            spawnRate = Math.max(15, 45 - Math.floor(score / 500));
+
+            // 주기마다 생성 로직 실행
+            if (frameCount % spawnRate === 0) {
+                
+                // 💡 1. 아이템 생성 (확률 1%로 대폭 하향)
+                if (Math.random() < 0.01) {
+                    items.push(new Item());
+                } else {
+                    poops.push(new Poop());
+                }
+
+                // 💡 2. 파멸의 똥 생성 로직 (2000점 이상부터 3% 확률, 최대 5개 유지)
+                if (score >= 2000 && meteors.length < 5) {
+                    if (Math.random() < 0.03) {
+                        // 캐릭터의 현재 중심 X 좌표를 타겟으로 발사!
+                        meteors.push(new MeteorStrike(player.x + player.w / 2));
+                    }
+                }
+            }
+
+            // 역순 루프: 우산 업데이트
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.update();
+                
+                if (checkCollision(item, player)) {
+                    player.equipUmbrella();
+                    items.splice(i, 1); 
+                    score += 50; 
+                } else if (item.y > canvas.height) {
+                    items.splice(i, 1);
+                }
+            }
+
+            // 역순 루프: 일반 똥 업데이트
+            for (let i = poops.length - 1; i >= 0; i--) {
+                let poop = poops[i];
+                poop.update();
+                
+                if (poop.isBouncing) {
+                    if (poop.y > canvas.height || poop.x < -100 || poop.x > canvas.width + 100) {
+                        poops.splice(i, 1);
+                    }
+                    continue; 
+                }
+                
+                if (checkCollision(poop, player)) {
+                    if (player.hasUmbrella) {
+                        poop.bounce();
+                        score += 20; 
+                    } else {
+                        gameOver();
+                    }
+                } else if (poop.y > canvas.height) {
+                    poops.splice(i, 1);
+                }
+            }
+
+            // 💡 역순 루프: 파멸의 똥 업데이트
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                let meteor = meteors[i];
+                meteor.update();
+
+                // done 상태가 되면 배열에서 삭제 (땅에 떨어졌거나, 튕겨서 화면 밖으로 나감)
+                if (meteor.state === 'done') {
+                    meteors.splice(i, 1);
+                    continue;
+                }
+
+                // 경고 상태에선 맞지 않고, 낙하 상태(strike)일 때만 부딪힘 판정
+                if (meteor.state === 'strike' && !meteor.isBouncing) {
+                    if (checkCollision(meteor, player)) {
+                        if (player.hasUmbrella) {
+                            meteor.bounce();
+                            score += 50; // 파멸의 똥을 튕겨내면 점수 50점 보너스!
+                        } else {
+                            gameOver();
+                        }
+                    }
+                }
+            }
+
+            player.update();
+            frameCount++;
+            animationId = requestAnimationFrame(animate);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        function bindButton(btn, directionKey) {
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[directionKey] = true; });
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[directionKey] = true; });
+            btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[directionKey] = false; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[directionKey] = false; });
+        }
+
+        bindButton(btnLeft, 'left');
+        bindButton(btnRight, 'right');
+
+        function startGame() {
+            startScreen.style.display = "none";
+            gameOverScreen.style.display = "none";
+            
+            poops = [];
+            items = [];
+            meteors = []; // 재시작 시 파멸의 똥 초기화
+            score = 0;
+            scoreElement.innerText = score;
+            frameCount = 0;
+            spawnRate = 45;
+            
+            player.x = canvas.width / 2 - player.w / 2;
+            player.hasUmbrella = false;
+            keys.left = false;
+            keys.right = false;
+
+            isPlaying = true;
+            animate();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("pooHighScore", highScore);
+                highScoreElement.innerText = highScore;
+            }
+            
+            finalScoreElement.innerText = `최종 점수: ${score}`;
+            gameOverScreen.style.display = "flex";
+        }
+
+        player.draw();
+    </script>
+</body>
+</html>
