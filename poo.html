@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>똥피하기 대작전 (파멸의 일격 패치)</title>
+    <title>똥피하기 대작전 (모션 업데이트)</title>
     <style>
         body {
             margin: 0;
@@ -54,7 +54,7 @@
             justify-content: space-between;
             padding: 0 10px;
             box-sizing: border-box;
-            font-size: 26px;
+            font-size: 20px; /* 항목이 3개로 늘어나 폰트 크기 살짝 조정 */
             font-weight: bold;
             margin-bottom: 10px;
             color: #fff;
@@ -80,6 +80,7 @@
             box-sizing: border-box;
         }
 
+        /* 💡 쫀득한 버튼 애니메이션 적용 */
         .control-btn {
             flex: 1;
             background-color: #ff9f43;
@@ -93,12 +94,14 @@
             user-select: none;
             -webkit-touch-callout: none;
             cursor: pointer;
-            box-shadow: 0 5px 0 #c8d6e5;
+            box-shadow: 0 6px 0 #d35400; /* 어두운 오렌지색 그림자 */
+            transition: all 0.1s ease; /* 부드러운 눌림 효과 */
         }
 
         .control-btn:active {
-            transform: translateY(5px);
-            box-shadow: 0 0 0 #c8d6e5;
+            transform: translateY(6px); /* 그림자 두께만큼 아래로 이동 */
+            box-shadow: 0 0 0 #d35400; /* 눌렸을 때 그림자 사라짐 */
+            background-color: #e67e22; /* 눌렸을 때 살짝 더 어두운 색상 */
         }
 
         .overlay-screen {
@@ -152,8 +155,10 @@
     <a href="index.html" class="back-btn">◀ 메인으로</a>
 
     <div id="game-container">
+        <!-- 💡 상단 스코어 보드에 타이머 추가 -->
         <div id="score-board">
-            <span>최고 점수: <span id="high-score">0</span></span>
+            <span>최고: <span id="high-score">0</span></span>
+            <span>시간: <span id="time">0</span>초</span>
             <span>점수: <span id="score">0</span></span>
         </div>
         
@@ -167,8 +172,8 @@
         <div id="start-screen" class="overlay-screen">
             <h2>똥피하기</h2>
             <p style="margin-bottom: 10px; font-size: 18px;">방향키(◀ ▶) 또는 A/D로 움직이세요!</p>
-            <p style="margin-bottom: 5px; font-size: 14px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
-            <p style="margin-bottom: 25px; font-size: 14px; color:#e74c3c; font-weight:bold;">경고: 2000점부터 파멸의 똥이 내리꽂힙니다!</p>
+            <!-- 경고 문구 제거됨 -->
+            <p style="margin-bottom: 25px; font-size: 14px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
             <button class="btn" onclick="startGame()">게임 시작</button>
         </div>
 
@@ -184,13 +189,21 @@
         const ctx = canvas.getContext("2d");
         const scoreElement = document.getElementById("score");
         const highScoreElement = document.getElementById("high-score");
+        const timeElement = document.getElementById("time"); // 타이머 요소 추가
         
         const startScreen = document.getElementById("start-screen");
         const gameOverScreen = document.getElementById("game-over-screen");
         const finalScoreElement = document.getElementById("final-score");
 
+        // 💡 모든 캐릭터 걷기 모션 에셋 로드
         const playerImg = new Image(); playerImg.src = 'Poo_Ch.png';
+        const playerLeftImg = new Image(); playerLeftImg.src = 'Poo_Ch_Left.png';
+        const playerRightImg = new Image(); playerRightImg.src = 'Poo_Ch_Right.png';
+        
         const playerUmbImg = new Image(); playerUmbImg.src = 'Poo_Ch_Umb.png';
+        const playerUmbLeftImg = new Image(); playerUmbLeftImg.src = 'Poo_Ch_Umb_Left.png';
+        const playerUmbRightImg = new Image(); playerUmbRightImg.src = 'Poo_Ch_Umb_Right.png';
+        
         const poopImg = new Image(); poopImg.src = 'Poo.png';
         const umbImg = new Image(); umbImg.src = 'Umbrella.png';
 
@@ -198,6 +211,7 @@
         let isPlaying = false;
         
         let score = 0;
+        let startTime = 0; // 시작 시간 기록용
         let highScore = localStorage.getItem("pooHighScore") || 0;
         highScoreElement.innerText = highScore;
 
@@ -233,24 +247,43 @@
             draw() {
                 let currentImg = playerImg;
 
+                // 💡 걷기 애니메이션 로직 (8프레임마다 걷기 모션이 교차됨)
+                let isWalking = (keys.left || keys.right);
+                let isWalkFrame = isWalking && (Math.floor(frameCount / 8) % 2 === 0);
+
                 if (this.hasUmbrella) {
                     let timeLeft = this.umbrellaEndTime - Date.now();
+                    let isBlinking = false;
                     
                     if (timeLeft > 0) {
                         if (timeLeft <= 1000) {
                             if (Math.floor(timeLeft / 200) % 2 === 0) {
-                                currentImg = playerImg; 
-                            } else {
-                                currentImg = playerUmbImg; 
+                                isBlinking = true; // 반짝임 효과 (맨몸으로 잠깐 보임)
                             }
-                        } else {
-                            currentImg = playerUmbImg;
                         }
                     } else {
                         this.hasUmbrella = false;
                     }
+
+                    if (this.hasUmbrella && !isBlinking) {
+                        // 우산 쓴 상태의 걷기
+                        if (keys.left && isWalkFrame) currentImg = playerUmbLeftImg;
+                        else if (keys.right && isWalkFrame) currentImg = playerUmbRightImg;
+                        else currentImg = playerUmbImg;
+                    } else {
+                        // 무적이 끝났거나 반짝일 때의 맨몸 걷기
+                        if (keys.left && isWalkFrame) currentImg = playerLeftImg;
+                        else if (keys.right && isWalkFrame) currentImg = playerRightImg;
+                        else currentImg = playerImg;
+                    }
+                } else {
+                    // 기본 맨몸 걷기
+                    if (keys.left && isWalkFrame) currentImg = playerLeftImg;
+                    else if (keys.right && isWalkFrame) currentImg = playerRightImg;
+                    else currentImg = playerImg;
                 }
 
+                // 렌더링
                 if (currentImg.complete && currentImg.naturalHeight !== 0) {
                     ctx.drawImage(currentImg, this.x, this.y, this.w, this.h);
                 } else {
@@ -274,7 +307,7 @@
 
         let poops = [];
         let items = [];
-        let meteors = []; // 💡 파멸의 똥 배열 추가
+        let meteors = []; 
 
         class Poop {
             constructor() {
@@ -311,29 +344,21 @@
             }
         }
 
-        // 💡 둠피스트 '파멸의 똥' 클래스
         class MeteorStrike {
             constructor(targetX) {
                 this.w = 72;
                 this.h = 72;
-                // 플레이어가 서 있던 중앙 X 좌표를 추적해서 꽂힘
                 this.x = targetX - this.w / 2; 
                 
-                // 화면 밖으로 나가지 않게 보정
                 if (this.x < 0) this.x = 0;
                 if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
 
                 this.y = -this.h; 
-                this.state = 'warning'; // 'warning'(경고), 'strike'(낙하), 'done'(종료)
-                
-                // 경고(깜빡임) 지속 시간 (대략 1.5초 = 90프레임)
+                this.state = 'warning'; 
                 this.maxTimer = 90;
                 this.timer = this.maxTimer; 
-                
-                // 일반 똥보다 압도적으로 빠른 총알 속도!
                 this.speed = 35; 
                 
-                // 튕겨내기 모션 변수
                 this.isBouncing = false;
                 this.vx = 0;
                 this.gravity = 0.8;
@@ -343,7 +368,7 @@
                 if (this.state === 'warning') {
                     this.timer--;
                     if (this.timer <= 0) {
-                        this.state = 'strike'; // 타이머 끝나면 바로 꽂힘
+                        this.state = 'strike'; 
                     }
                 } else if (this.state === 'strike') {
                     if (this.isBouncing) {
@@ -352,7 +377,6 @@
                     }
                     this.y += this.speed;
                     
-                    // 화면 밖으로 나가면 상태를 done으로 변경
                     if (this.y > canvas.height || this.x < -100 || this.x > canvas.width + 100) {
                         this.state = 'done';
                     }
@@ -362,24 +386,20 @@
 
             draw() {
                 if (this.state === 'warning') {
-                    // 시간이 줄어들수록(t가 0에 가까워질수록) 깜빡이는 간격이 엄청 짧아짐
                     let t = this.timer / this.maxTimer;
                     let blinkInterval = Math.max(2, Math.floor(t * 15));
                     
                     if (frameCount % blinkInterval < Math.max(1, blinkInterval / 2)) {
-                        // 투명한 넓은 빨간 줄
                         ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
                         ctx.fillRect(this.x + this.w/2 - 15, 0, 30, canvas.height);
-                        // 진한 얇은 뼈대 빨간 줄
                         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
                         ctx.fillRect(this.x + this.w/2 - 3, 0, 6, canvas.height);
                     }
                 } else if (this.state === 'strike') {
-                    // 낙하 중에는 일반 똥과 같은 이미지로 렌더링
                     if (poopImg.complete && poopImg.naturalHeight !== 0) {
                         ctx.drawImage(poopImg, this.x, this.y, this.w, this.h);
                     } else {
-                        ctx.fillStyle = "#c0392b"; // 안 불러와졌을 땐 시뻘건 네모
+                        ctx.fillStyle = "#c0392b"; 
                         ctx.fillRect(this.x, this.y, this.w, this.h);
                     }
                 }
@@ -387,7 +407,7 @@
 
             bounce() {
                 this.isBouncing = true;
-                this.speed = -25; // 튕겨나갈 때도 훨씬 강하게 튕겨나감
+                this.speed = -25; 
                 this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 8 + 5);
             }
         }
@@ -430,6 +450,10 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // 💡 생존 시간(초) 업데이트
+            let elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            timeElement.innerText = elapsedSeconds;
+
             score++;
             if (score % 10 === 0) {
                 scoreElement.innerText = score;
@@ -437,26 +461,22 @@
 
             spawnRate = Math.max(15, 45 - Math.floor(score / 500));
 
-            // 주기마다 생성 로직 실행
             if (frameCount % spawnRate === 0) {
                 
-                // 💡 1. 아이템 생성 (확률 1%로 대폭 하향)
                 if (Math.random() < 0.01) {
                     items.push(new Item());
                 } else {
                     poops.push(new Poop());
                 }
 
-                // 💡 2. 파멸의 똥 생성 로직 (2000점 이상부터 3% 확률, 최대 5개 유지)
+                // 💡 파멸의 일격 확률 5%로 상승
                 if (score >= 2000 && meteors.length < 5) {
-                    if (Math.random() < 0.03) {
-                        // 캐릭터의 현재 중심 X 좌표를 타겟으로 발사!
+                    if (Math.random() < 0.05) {
                         meteors.push(new MeteorStrike(player.x + player.w / 2));
                     }
                 }
             }
 
-            // 역순 루프: 우산 업데이트
             for (let i = items.length - 1; i >= 0; i--) {
                 let item = items[i];
                 item.update();
@@ -470,7 +490,6 @@
                 }
             }
 
-            // 역순 루프: 일반 똥 업데이트
             for (let i = poops.length - 1; i >= 0; i--) {
                 let poop = poops[i];
                 poop.update();
@@ -494,23 +513,20 @@
                 }
             }
 
-            // 💡 역순 루프: 파멸의 똥 업데이트
             for (let i = meteors.length - 1; i >= 0; i--) {
                 let meteor = meteors[i];
                 meteor.update();
 
-                // done 상태가 되면 배열에서 삭제 (땅에 떨어졌거나, 튕겨서 화면 밖으로 나감)
                 if (meteor.state === 'done') {
                     meteors.splice(i, 1);
                     continue;
                 }
 
-                // 경고 상태에선 맞지 않고, 낙하 상태(strike)일 때만 부딪힘 판정
                 if (meteor.state === 'strike' && !meteor.isBouncing) {
                     if (checkCollision(meteor, player)) {
                         if (player.hasUmbrella) {
                             meteor.bounce();
-                            score += 50; // 파멸의 똥을 튕겨내면 점수 50점 보너스!
+                            score += 50; 
                         } else {
                             gameOver();
                         }
@@ -551,9 +567,14 @@
             
             poops = [];
             items = [];
-            meteors = []; // 재시작 시 파멸의 똥 초기화
+            meteors = []; 
             score = 0;
             scoreElement.innerText = score;
+            
+            // 💡 시작 시 시간 기록 및 초기화
+            startTime = Date.now();
+            timeElement.innerText = "0";
+
             frameCount = 0;
             spawnRate = 45;
             
