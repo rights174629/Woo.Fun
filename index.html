@@ -25,114 +25,301 @@
         }
 
         h1 {
-            font-size: 42px;
+            font-size: 48px;
             color: #f1c40f;
             margin: 0;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            font-weight: 900;
         }
 
         p.subtitle {
             color: #808e9b;
             font-size: 16px;
-            margin-top: 15px;
+            margin-top: 10px;
             font-weight: bold;
         }
 
         .game-grid {
             display: grid;
-            /* 화면 크기에 맞춰 카드가 1줄 또는 2줄로 자동 배치됩니다 */
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 25px;
             width: 90%;
-            max-width: 900px;
+            max-width: 1000px;
             padding-bottom: 60px;
         }
 
+        /* 💡 기존 a 태그에서 div 로 변경됨 */
         .game-card {
             background-color: #2c3e50;
             border-radius: 20px;
-            padding: 30px 20px;
-            text-align: center;
-            text-decoration: none;
+            padding: 25px 20px;
             color: white;
             transition: all 0.3s ease;
             box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+            border: 2px solid transparent;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            border: 2px solid transparent;
         }
 
         .game-card:hover {
-            transform: translateY(-8px);
             box-shadow: 0 15px 25px rgba(0,0,0,0.5);
-            background-color: #34495e;
             border-color: #f1c40f;
         }
 
-        .game-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.4);
+        /* 카드 상단 (아이콘, 제목, 펼치기 버튼) */
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .card-title-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .card-icon {
-            font-size: 65px;
-            margin-bottom: 20px;
-            /* 아이콘이 살짝 떠 있는 듯한 효과 */
-            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+            font-size: 45px;
+            filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3));
         }
 
         .card-title {
             font-size: 24px;
-            margin: 0 0 12px 0;
+            margin: 0;
             color: #0fb9b1;
             font-weight: 800;
+        }
+
+        /* 펼치기 화살표 버튼 */
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: #d2dae2;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 10px;
+            transition: transform 0.3s ease, color 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-btn:hover {
+            color: #f1c40f;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-btn.open {
+            transform: rotate(180deg);
+            color: #f1c40f;
         }
 
         .card-desc {
             font-size: 15px;
             color: #d1d8e0;
-            margin: 0;
+            margin: 0 0 20px 0;
             line-height: 1.5;
             word-break: keep-all;
+        }
+
+        /* 실제 게임을 실행하는 버튼 */
+        .play-btn {
+            display: block;
+            text-align: center;
+            background-color: #2ecc71;
+            color: white;
+            text-decoration: none;
+            padding: 12px 0;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #27ae60;
+            transition: all 0.1s;
+        }
+
+        .play-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #27ae60;
+        }
+
+        /* 💡 슬라이드 형식으로 내려오는 상세 설명 영역 */
+        .card-details {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.4s ease-out, opacity 0.3s ease, margin-top 0.3s ease;
+        }
+
+        .card-details.open {
+            max-height: 400px; /* 내용이 충분히 들어갈 만큼의 높이 */
+            opacity: 1;
+            margin-top: 20px;
+            border-top: 1px solid #34495e;
+            padding-top: 15px;
+        }
+
+        .details-section {
+            margin-bottom: 15px;
+        }
+
+        .details-section h4 {
+            margin: 0 0 5px 0;
+            color: #f39c12;
+            font-size: 16px;
+        }
+
+        .details-section ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #bdc3c7;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🎮 미니 게임 천국</h1>
+        <h1>Woo.Fun</h1>
         <p class="subtitle">심심할 때 즐기는 가벼운 웹 게임 모음집</p>
     </header>
 
     <div class="game-grid">
         
-        <a href="snake.html" class="game-card">
-            <span class="card-icon">🐍</span>
-            <h2 class="card-title">스네이크 게임</h2>
-            <p class="card-desc">화면을 꽉 채우는 퍼펙트 클리어에 도전하세요!</p>
-        </a>
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">🐍</span>
+                    <h2 class="card-title">스네이크 게임</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
+            <p class="card-desc">맵을 꽉 채우는 퍼펙트 클리어에 도전하세요!</p>
+            <a href="snake.html" class="play-btn">게임 시작 🎮</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>꼬리를 늘려가며 점수를 올리는 클래식 게임입니다.</li>
+                        <li>화면을 100% 채우면 '진 엔딩'을 볼 수 있습니다!</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC:</b> 방향키(상하좌우) 또는 W, A, S, D</li>
+                        <li><b>모바일:</b> 화면 하단의 방향 버튼 터치</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-        <a href="brick.html" class="game-card">
-            <span class="card-icon">🧱</span>
-            <h2 class="card-title">벽돌 깨기</h2>
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">🧱</span>
+                    <h2 class="card-title">벽돌 깨기</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
             <p class="card-desc">스테이지 클리어부터 숨 막히는 무한 생존 모드까지!</p>
-        </a>
+            <a href="brick.html" class="play-btn">게임 시작 🎮</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li><b>스테이지 모드:</b> 블록을 모두 깨고 다음 단계로 진입하세요.</li>
+                        <li><b>무한 모드:</b> 블록이 계속 내려옵니다. 바닥에 닿기 전에 부수세요!</li>
+                        <li>노란색(+5) 아이템을 깨면 공이 5갈래로 퍼져나갑니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC/모바일 공통:</b> 패드를 마우스(또는 터치)로 누른 채 좌우로 드래그하여 이동</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-        <a href="TrexRun.html" class="game-card">
-            <span class="card-icon">🦖</span>
-            <h2 class="card-title">티렉스 런</h2>
-            <p class="card-desc">점프와 급강하를 활용해 선인장과 익룡을 피하며 끝없이 달리세요.</p>
-        </a>
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">🦖</span>
+                    <h2 class="card-title">티렉스 런</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
+            <p class="card-desc">점프와 급강하를 활용해 선인장과 익룡을 피하세요.</p>
+            <a href="TrexRun.html" class="play-btn">게임 시작 🎮</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>장애물을 무사히 통과할 때마다 1점씩 오릅니다.</li>
+                        <li>5점 이상부터는 하늘을 나는 '익룡'이 등장합니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>점프:</b> 스페이스바, W, ↑, 좌측 화면 터치</li>
+                        <li><b>숙이기:</b> Ctrl, S, ↓, 우측 화면 터치</li>
+                        <li><b>💡 팁 (급강하):</b> 공중에 떴을 때 숙이기를 누르면 바닥으로 뚝 떨어지며 재빠르게 피할 수 있습니다!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-        <a href="poo.html" class="game-card">
-            <span class="card-icon">💩</span>
-            <h2 class="card-title">똥피하기 대작전</h2>
-            <p class="card-desc">하늘에서 쏟아지는 똥과 무시무시한 파멸의 똥을 피해 살아남으세요!</p>
-        </a>
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">💩</span>
+                    <h2 class="card-title">똥피하기 대작전</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
+            <p class="card-desc">하늘에서 쏟아지는 똥과 파멸의 똥을 피해 살아남으세요!</p>
+            <a href="poo.html" class="play-btn">게임 시작 🎮</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>떨어지는 똥을 피하며 오래 버틸수록 똥이 더 자주 내립니다.</li>
+                        <li><b>우산(5% 확률):</b> 먹으면 6초간 무적이 되며 똥을 통통 튕겨냅니다.</li>
+                        <li><b>파멸의 일격:</b> 2000점이 넘으면 캐릭터 머리 위로 빨간 경고선이 생긴 후, 엄청난 속도의 똥이 내리꽂힙니다!</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC:</b> 좌우 방향키 (←, →) 또는 A, D</li>
+                        <li><b>모바일:</b> 화면 하단의 좌측/우측 버튼 터치</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
     </div>
 
+    <script>
+        // 화살표 버튼을 누르면 상세 설명 영역을 열고 닫는 함수
+        function toggleDetails(button) {
+            // 버튼 자체의 애니메이션 (화살표 뒤집기)
+            button.classList.toggle('open');
+            
+            // 버튼과 가장 가까운 부모(.card-header)의 다음 형제 중 .card-details 찾기
+            const card = button.closest('.game-card');
+            const details = card.querySelector('.card-details');
+            
+            // 상세 영역 보이기/숨기기
+            details.classList.toggle('open');
+        }
+    </script>
 </body>
 </html>
