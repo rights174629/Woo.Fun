@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>티렉스 런 (대형 화면 & 스피드 업)</title>
+    <title>티렉스 런</title>
     <style>
         body {
             margin: 0;
@@ -69,22 +69,24 @@
             background-color: #f7f7f7;
             border-bottom: 2px solid #535353;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            image-rendering: pixelated; /* 도트가 깨지지 않게 선명히 유지 */
         }
 
         #mobile-controls {
             display: flex;
             width: 100%;
             max-width: 1000px;
-            gap: 10px;
+            gap: 12px;
             padding: 15px 20px;
             box-sizing: border-box;
         }
 
+        /* 💡 점프/숙이기 버튼 쫀득한 애니메이션 추가 */
         .control-btn {
             flex: 1;
             background-color: #e0e0e0;
             color: #333;
-            border: 2px solid #bbb;
+            border: none;
             border-radius: 12px;
             padding: 20px 0;
             font-size: 20px;
@@ -93,11 +95,12 @@
             user-select: none;
             -webkit-touch-callout: none;
             cursor: pointer;
-            box-shadow: 0 4px 0 #bbb;
+            box-shadow: 0 6px 0 #bbb;
+            transition: all 0.1s ease;
         }
 
         .control-btn:active {
-            transform: translateY(4px);
+            transform: translateY(6px);
             box-shadow: 0 0 0 #bbb;
             background-color: #d0d0d0;
         }
@@ -155,13 +158,13 @@
         <canvas id="gameCanvas" width="1000" height="400"></canvas>
         
         <div id="mobile-controls">
-            <div id="btn-duck" class="control-btn">▼ 숙이기 (S, Ctrl)</div>
-            <div id="btn-jump" class="control-btn">▲ 점프 (W, Space)</div>
+            <div id="btn-duck" class="control-btn">▼ 숙이기</div>
+            <div id="btn-jump" class="control-btn">▲ 점프</div>
         </div>
 
         <div id="start-screen" class="overlay-screen">
             <h2>티렉스 런</h2>
-            <p style="color: #888; font-family: 'Segoe UI', sans-serif; margin-bottom: 20px;">스페이스바, W, 화살표 위 버튼으로 점프<br>Ctrl, S, 화살표 아래 버튼으로 숙이기</p>
+            <p style="color: #888; font-family: 'Segoe UI', sans-serif; margin-bottom: 20px;">스페이스바, W, 화면 터치로 점프<br>Ctrl, S로 공중에서 급강하</p>
             <button class="btn" onclick="startGame()">게임 시작</button>
         </div>
 
@@ -200,21 +203,21 @@
         let highScore = localStorage.getItem("trexHighScore") || 0;
         highScoreElement.innerText = "HI " + String(Math.floor(highScore)).padStart(5, '0');
 
-        // 💡 초기 속도 대폭 상향 (기존 5.5 -> 7.5)
         let gameSpeed = 7.5; 
         let frameCount = 0;
 
-        const groundY = 330; 
+        // 바닥 높이 설정
+        const groundY = 350; 
 
+        // 💡 1. 공룡 크기 대폭 상향 (90x90)
         const dino = {
             x: 60,
-            w: 56, 
-            h: 56, 
+            w: 90, // 기존 56에서 90으로 상향
+            h: 90, 
             y: 0, 
             dy: 0,
-            gravity: 0.6, 
-            // 💡 점프력 20% 하향 (기존 -18 -> -14.4)
-            jumpPower: -14.4, 
+            gravity: 0.7,   // 몸집이 커졌으므로 중력을 살짝 무겁게 조정
+            jumpPower: -18, // 더 높이 뛰도록 점프력 상향
             isJumping: false,
             isDucking: false,
             
@@ -261,11 +264,14 @@
                 }
             },
 
+            // 💡 커진 덩치에 맞춰 정교하게 계산된 피격 판정(Hitbox)
             getHitBox() {
                 if (this.isDucking && !this.isJumping) {
-                    return { x: this.x + 5, y: this.y + 28, w: this.w - 10, h: 28 };
+                    // 숙였을 때
+                    return { x: this.x + 10, y: this.y + 45, w: this.w - 20, h: 45 };
                 } else {
-                    return { x: this.x + 8, y: this.y + 5, w: this.w - 16, h: this.h - 10 };
+                    // 서있을 때
+                    return { x: this.x + 15, y: this.y + 10, w: this.w - 30, h: this.h - 15 };
                 }
             }
         };
@@ -275,19 +281,27 @@
 
         class Obstacle {
             constructor() {
-                this.type = (score >= 5 && Math.random() > 0.7) ? 'bird' : 'cactus';
+                this.type = (score >= 200 && Math.random() > 0.7) ? 'bird' : 'cactus';
                 this.x = canvas.width;
                 this.passed = false; 
 
                 if (this.type === 'cactus') {
-                    this.w = Math.random() > 0.5 ? 50 : 75; 
-                    // 점프력이 낮아졌으므로 선인장 최대 높이를 살짝 완화하여 피할 수 있게 보정
-                    this.h = Math.random() > 0.5 ? 65 : 85; 
+                    // 💡 2. 쌍둥이 선인장 패턴 추가 (40% 확률로 2연속 선인장)
+                    this.count = Math.random() > 0.6 ? 2 : 1; 
+                    
+                    // 선인장 1개의 기본 크기도 대폭 상향
+                    this.baseW = Math.random() > 0.5 ? 55 : 80; 
+                    this.h = Math.random() > 0.5 ? 85 : 120; 
+                    
+                    // 총 넓이는 선인장 갯수만큼 곱함
+                    this.w = this.baseW * this.count;
                     this.y = groundY - this.h;
                 } else {
-                    this.w = 56;
-                    this.h = 40;
-                    this.y = groundY - 75; 
+                    // 새(익룡) 크기도 상향
+                    this.w = 70;
+                    this.h = 50;
+                    // 서 있으면 부딪히고, 숙이면 피할 수 있는 절묘한 Y좌표 계산
+                    this.y = groundY - 105; 
                 }
             }
 
@@ -298,21 +312,25 @@
 
             draw() {
                 if (this.type === 'cactus') {
-                    if (cactusImg.complete && cactusImg.naturalHeight !== 0) {
-                        ctx.drawImage(cactusImg, this.x, this.y, this.w, this.h);
-                    } else {
-                        ctx.fillStyle = "#27ae60";
-                        ctx.fillRect(this.x, this.y, this.w, this.h);
+                    // 쌍둥이 선인장이면 2번 반복해서 그리기
+                    for (let i = 0; i < this.count; i++) {
+                        let drawX = this.x + (i * this.baseW);
+                        if (cactusImg.complete && cactusImg.naturalHeight !== 0) {
+                            ctx.drawImage(cactusImg, drawX, this.y, this.baseW, this.h);
+                        } else {
+                            ctx.fillStyle = "#27ae60";
+                            ctx.fillRect(drawX, this.y, this.baseW, this.h);
+                        }
                     }
                 } else {
                     if (birdImg.complete && birdImg.naturalHeight !== 0) {
-                        let flapY = (frameCount % 30 < 15) ? -3 : 3; 
+                        let flapY = (frameCount % 30 < 15) ? -4 : 4; 
                         ctx.drawImage(birdImg, this.x, this.y + flapY, this.w, this.h);
                     } else {
                         ctx.fillStyle = "#e74c3c";
-                        let flap = (frameCount % 20 < 10) ? -8 : 8; 
-                        ctx.fillRect(this.x, this.y + 15, this.w, 15); 
-                        ctx.fillRect(this.x + 10, this.y + 15 + flap, 20, 10); 
+                        let flap = (frameCount % 20 < 10) ? -10 : 10; 
+                        ctx.fillRect(this.x, this.y + 20, this.w, 20); 
+                        ctx.fillRect(this.x + 15, this.y + 20 + flap, 25, 12); 
                     }
                 }
             }
@@ -322,8 +340,8 @@
             constructor() {
                 this.x = canvas.width;
                 this.y = Math.random() * 120 + 30; 
-                this.w = 60;
-                this.h = 20;
+                this.w = 70;
+                this.h = 25;
                 this.speed = Math.random() * 0.5 + 1; 
             }
             update() {
@@ -333,7 +351,7 @@
             draw() {
                 ctx.fillStyle = "#e0e0e0";
                 ctx.fillRect(this.x, this.y, this.w, this.h);
-                ctx.fillRect(this.x + 15, this.y - 10, 30, 15);
+                ctx.fillRect(this.x + 15, this.y - 12, 40, 18);
             }
         }
 
@@ -354,12 +372,12 @@
 
         function checkCollision(obstacle) {
             const hitBox = dino.getHitBox();
-            const padding = 5; 
+            const padding = 10; // 충돌 여유값
 
-            if (hitBox.x + padding < obstacle.x + obstacle.w &&
-                hitBox.x + hitBox.w - padding > obstacle.x &&
-                hitBox.y + padding < obstacle.y + obstacle.h &&
-                hitBox.y + hitBox.h - padding > obstacle.y) {
+            if (hitBox.x + padding < obstacle.x + obstacle.w - padding &&
+                hitBox.x + hitBox.w - padding > obstacle.x + padding &&
+                hitBox.y + padding < obstacle.y + obstacle.h - padding &&
+                hitBox.y + hitBox.h - padding > obstacle.y + padding) {
                 return true;
             }
             return false;
@@ -371,8 +389,12 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGround();
 
-            // 💡 베이스 속도가 높아졌으므로 수식 반영 (7.5 시작, 최대 속도 20까지 허용)
-            gameSpeed = Math.min(7.5 + (score * 0.04), 20);
+            // 💡 3. 점수 시스템 롤백: 달리기만 해도 쭉쭉 증가!
+            score += gameSpeed * 0.02;
+            scoreElement.innerText = String(Math.floor(score)).padStart(5, '0');
+
+            // 속도도 점수에 비례해 서서히 빨라짐 (최대 속도 22)
+            gameSpeed = Math.min(7.5 + (score * 0.002), 22);
 
             if (frameCount % 180 === 0 || (frameCount === 0 && Math.random() > 0.5)) {
                 clouds.push(new Cloud());
@@ -382,12 +404,12 @@
                 if (cloud.x + cloud.w < 0) clouds.splice(index, 1);
             });
 
+            // 덩치들이 커진 만큼 생성 간격을 여유 있게(최소 550픽셀 이상) 띄워줌
             let lastObs = obstacles[obstacles.length - 1];
-            // 속도가 빨라진 만큼 장애물간 간격도 넓혀서 억까 방지
-            let minDistance = 400 + (gameSpeed * 15) + Math.random() * 200; 
+            let minDistance = 550 + (gameSpeed * 15) + Math.random() * 250; 
             
             if (!lastObs || canvas.width - lastObs.x > minDistance) {
-                if (Math.random() > 0.96) { 
+                if (Math.random() > 0.95) { 
                     obstacles.push(new Obstacle());
                 }
             }
@@ -395,12 +417,6 @@
             obstacles.forEach((obstacle, index) => {
                 obstacle.update();
                 
-                if (!obstacle.passed && obstacle.x + obstacle.w < dino.x) {
-                    obstacle.passed = true;
-                    score++;
-                    scoreElement.innerText = String(score).padStart(5, '0');
-                }
-
                 if (checkCollision(obstacle)) {
                     gameOver();
                 }
@@ -435,11 +451,11 @@
         const btnJump = document.getElementById('btn-jump');
         const btnDuck = document.getElementById('btn-duck');
 
+        // pointerdown 이벤트로 모바일 인풋 딜레이 제거
         function bindButton(btn, onDown, onUp) {
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); onDown(); });
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
-            btn.addEventListener('mouseup', (e) => { e.preventDefault(); onUp(); });
-            btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); });
+            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); onDown(); });
+            btn.addEventListener('pointerup', (e) => { e.preventDefault(); onUp(); });
+            btn.addEventListener('pointerleave', (e) => { e.preventDefault(); onUp(); });
         }
 
         bindButton(btnJump, () => { if(isPlaying) dino.jump(); }, () => {});
@@ -452,8 +468,7 @@
             obstacles = [];
             clouds = [];
             score = 0;
-            scoreElement.innerText = String(score).padStart(5, '0');
-            // 💡 시작 시 초기화 속도도 상향
+            scoreElement.innerText = "00000";
             gameSpeed = 7.5;
             frameCount = 0;
             
@@ -469,7 +484,7 @@
             if (score > highScore) {
                 highScore = score;
                 localStorage.setItem("trexHighScore", highScore);
-                highScoreElement.innerText = "HI " + String(highScore).padStart(5, '0');
+                highScoreElement.innerText = "HI " + String(Math.floor(highScore)).padStart(5, '0');
             }
             gameOverScreen.style.display = "flex";
         }
