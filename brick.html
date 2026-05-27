@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌 깨기 (최적화 & 버그 픽스)</title>
+    <title>벽돌 깨기 (속도 8.0 업그레이드)</title>
     <style>
         body {
             margin: 0;
@@ -40,7 +40,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 20px;
-            margin-top: 55px; /* 뒤로가기 버튼과 안 겹치게 여백 */
+            margin-top: 55px; 
             box-sizing: border-box;
             font-size: 16px;
             font-weight: bold;
@@ -73,7 +73,6 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             border-radius: 5px;
             border: 2px solid #0f3460;
-            /* 💡 캔버스 내부에서 크기를 잡으므로 CSS 강제 비율 해제 */
             touch-action: none; 
         }
 
@@ -178,18 +177,17 @@
         let linesDropped = 0;
         let currentMaxHp = 5;
 
-        // 패들 설정
+        let lastTime = 0;
+
         let paddleHeight = 15;
         let paddleWidth = 150;
-        let paddleX = 0; // 리사이즈 후 중앙 정렬
+        let paddleX = 0; 
         
-        // 공 설정
         let ballRadius = 8;
         let balls = []; 
-        // 💡 공 속도 20% 감소 (5.0 -> 4.0)
-        let baseSpeed = 4.0; 
+        // 💡 속도 8.0으로 대폭 상향
+        let baseSpeed = 8.0; 
 
-        // 벽돌 설정
         let brickColumnCount = 7;
         let brickRowCount = 8; 
         let brickPadding = 6;
@@ -199,27 +197,20 @@
 
         const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
 
-        // 💡 화면 크기에 맞춰 하단 마진 없이 캔버스 꽉 채우기
         function resizeCanvas() {
             const containerWidth = document.getElementById("canvas-container").clientWidth;
-            // 패딩 20px(양옆 10px)을 제외한 가로 길이
             canvas.width = (containerWidth - 20) > 600 ? 600 : (containerWidth - 20);
-            
-            // 상단 헤더 공간(약 120px 내외)을 뺀 나머지 세로 영역 꽉 채우기
             canvas.height = window.innerHeight - 130; 
-            
             paddleX = (canvas.width - paddleWidth) / 2;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // 💡 그리드 초기화 함수 (첫 시작 시 100% 무작위 블록 1개에 +5 할당)
         function initGrid(isInfinite) {
             grid = [];
             let rows = isInfinite ? 8 : brickRowCount;
             let maxHp = isInfinite ? currentMaxHp : stage * 5;
 
-            // 전체(rows * cols) 블록 중 어디에 +5를 넣을지 행(R)/열(C) 결정
             let forceR = Math.floor(Math.random() * rows);
             let forceC = Math.floor(Math.random() * brickColumnCount);
 
@@ -233,7 +224,7 @@
 
                     if (rand < 0.15 && !isForceItem) {
                         row.push({ status: 0, hp: 0, isItem: false, w: brickWidth, h: brickHeight });
-                    } else if (isForceItem || rand > 0.97) { // 확정이거나 3% 확률
+                    } else if (isForceItem || rand > 0.97) { 
                         row.push({ status: 1, hp: 1, isItem: true, w: brickWidth, h: brickHeight });
                     } else {
                         let randomHp = Math.floor(Math.random() * maxHp) + 1;
@@ -244,7 +235,6 @@
             }
         }
 
-        // 무한 모드 블록 1줄 드롭 (여긴 확정 아이템 없음)
         function dropBricks() {
             let row = [];
             let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
@@ -267,7 +257,6 @@
             currentMaxHp = Math.min(5 + Math.floor(linesDropped / 2), 30);
             document.getElementById("max-hp-display").innerText = currentMaxHp;
 
-            // 바닥에 닿았는지 체크
             for (let r = 0; r < grid.length; r++) {
                 let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
                 if (brickY + brickHeight > canvas.height - paddleHeight - 20) {
@@ -433,8 +422,16 @@
             }
         }
 
-        function draw() {
+        function draw(currentTime) {
             if (!isPlaying) return;
+
+            if (!lastTime) lastTime = currentTime;
+            let deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            let timeScale = deltaTime / (1000 / 60);
+
+            if (timeScale > 3) timeScale = 1;
 
             if (gameMode === 'infinite') {
                 if (Date.now() - lastDropTime > dropInterval) {
@@ -460,15 +457,14 @@
             for (let i = 0; i < balls.length; i++) {
                 let ball = balls[i];
 
-                if (ball.x + ball.dx > canvas.width - ballRadius || ball.x + ball.dx < ballRadius) {
+                if (ball.x + ball.dx * timeScale > canvas.width - ballRadius || ball.x + ball.dx * timeScale < ballRadius) {
                     ball.dx = -ball.dx;
                 }
-                if (ball.y + ball.dy < ballRadius) {
+                if (ball.y + ball.dy * timeScale < ballRadius) {
                     ball.dy = -ball.dy;
                 }
                 
-                // 패들 충돌
-                if (ball.y + ball.dy > canvas.height - paddleHeight - ballRadius - 10) {
+                if (ball.y + ball.dy * timeScale > canvas.height - paddleHeight - ballRadius - 10) {
                     if (ball.x > paddleX - ballRadius && ball.x < paddleX + paddleWidth + ballRadius) {
                         let hitPoint = ball.x - (paddleX + paddleWidth / 2);
                         let normalizedHit = hitPoint / (paddleWidth / 2);
@@ -478,7 +474,7 @@
                         ball.dx = Math.sin(bounceAngle) * baseSpeed;
                         ball.dy = -Math.cos(bounceAngle) * baseSpeed;
                         
-                    } else if (ball.y + ball.dy > canvas.height) {
+                    } else if (ball.y + ball.dy * timeScale > canvas.height) {
                         continue; 
                     }
                 }
@@ -487,8 +483,8 @@
                     ball.dy = ball.dy > 0 ? 0.5 : -0.5;
                 }
 
-                ball.x += ball.dx;
-                ball.y += ball.dy;
+                ball.x += ball.dx * timeScale;
+                ball.y += ball.dy * timeScale;
                 activeBalls.push(ball); 
             }
 
@@ -526,7 +522,6 @@
             startScreen.style.display = "none";
             nextStageScreen.style.display = "none";
             
-            // 시작 시 화면 크기 한번 더 맞추기
             resizeCanvas();
             
             paddleWidth = 150;
@@ -553,7 +548,8 @@
             }
             
             isPlaying = true;
-            draw();
+            lastTime = 0; 
+            animationId = requestAnimationFrame(draw);
         }
 
         function nextStage() {
@@ -568,7 +564,8 @@
             createBall(paddleX + paddleWidth / 2, canvas.height - paddleHeight - ballRadius - 15, (Math.random() > 0.5 ? 1 : -1) * baseSpeed, -baseSpeed);
             
             isPlaying = true;
-            draw();
+            lastTime = 0;
+            animationId = requestAnimationFrame(draw);
         }
 
         function gameOver() {
