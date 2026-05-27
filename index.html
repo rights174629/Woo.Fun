@@ -47,9 +47,11 @@
             width: 90%;
             max-width: 1000px;
             padding-bottom: 60px;
+            
+            /* 💡 핵심 수정 포인트: 카드가 각자의 독립적인 높이를 가지게 설정 */
+            align-items: start; 
         }
 
-        /* 💡 기존 a 태그에서 div 로 변경됨 */
         .game-card {
             background-color: #2c3e50;
             border-radius: 20px;
@@ -67,7 +69,6 @@
             border-color: #f1c40f;
         }
 
-        /* 카드 상단 (아이콘, 제목, 펼치기 버튼) */
         .card-header {
             display: flex;
             align-items: center;
@@ -93,7 +94,6 @@
             font-weight: 800;
         }
 
-        /* 펼치기 화살표 버튼 */
         .toggle-btn {
             background: none;
             border: none;
@@ -123,7 +123,6 @@
             word-break: keep-all;
         }
 
-        /* 실제 게임을 실행하는 버튼 */
         .play-btn {
             display: block;
             text-align: center;
@@ -143,7 +142,6 @@
             box-shadow: 0 0 0 #27ae60;
         }
 
-        /* 💡 슬라이드 형식으로 내려오는 상세 설명 영역 */
         .card-details {
             max-height: 0;
             overflow: hidden;
@@ -152,7 +150,7 @@
         }
 
         .card-details.open {
-            max-height: 400px; /* 내용이 충분히 들어갈 만큼의 높이 */
+            max-height: 400px; 
             opacity: 1;
             margin-top: 20px;
             border-top: 1px solid #34495e;
@@ -291,7 +289,7 @@
                     <h4>📜 게임 방식</h4>
                     <ul>
                         <li>떨어지는 똥을 피하며 오래 버틸수록 똥이 더 자주 내립니다.</li>
-                        <li><b>우산(5% 확률):</b> 먹으면 6초간 무적이 되며 똥을 통통 튕겨냅니다.</li>
+                        <li><b>우산(1% 확률):</b> 먹으면 6초간 무적이 되며 똥을 통통 튕겨냅니다.</li>
                         <li><b>파멸의 일격:</b> 2000점이 넘으면 캐릭터 머리 위로 빨간 경고선이 생긴 후, 엄청난 속도의 똥이 내리꽂힙니다!</li>
                     </ul>
                 </div>
@@ -308,16 +306,10 @@
     </div>
 
     <script>
-        // 화살표 버튼을 누르면 상세 설명 영역을 열고 닫는 함수
         function toggleDetails(button) {
-            // 버튼 자체의 애니메이션 (화살표 뒤집기)
             button.classList.toggle('open');
-            
-            // 버튼과 가장 가까운 부모(.card-header)의 다음 형제 중 .card-details 찾기
             const card = button.closest('.game-card');
             const details = card.querySelector('.card-details');
-            
-            // 상세 영역 보이기/숨기기
             details.classList.toggle('open');
         }
     </script>
