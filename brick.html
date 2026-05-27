@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌 깨기</title>
+    <title>벽돌 깨기 (최적화 & 버그 픽스)</title>
     <style>
         body {
             margin: 0;
@@ -18,18 +18,45 @@
             align-items: center;
         }
 
+        .back-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            text-decoration: none;
+            background: #0f3460;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 20;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
         #game-header {
             width: 100%;
             max-width: 600px;
             display: flex;
             justify-content: space-between;
-            padding: 15px 20px;
+            align-items: center;
+            padding: 10px 20px;
+            margin-top: 55px; /* 뒤로가기 버튼과 안 겹치게 여백 */
             box-sizing: border-box;
             font-size: 16px;
             font-weight: bold;
         }
 
-        #game-header span { display: inline-block; }
+        .header-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .high-score-text {
+            font-size: 12px;
+            color: #f1c40f;
+            margin-top: 4px;
+        }
 
         #canvas-container {
             position: relative;
@@ -37,6 +64,8 @@
             max-width: 600px;
             display: flex;
             justify-content: center;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
 
         canvas {
@@ -44,6 +73,8 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             border-radius: 5px;
             border: 2px solid #0f3460;
+            /* 💡 캔버스 내부에서 크기를 잡으므로 CSS 강제 비율 해제 */
+            touch-action: none; 
         }
 
         .overlay-screen {
@@ -56,9 +87,10 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: rgba(26, 26, 46, 0.85);
+            background-color: rgba(26, 26, 46, 0.9);
             border-radius: 5px;
             z-index: 10;
+            text-align: center;
         }
 
         .btn {
@@ -83,18 +115,6 @@
 
         .btn:active { transform: scale(0.95); }
         .btn-gold { background-color: #f1c40f; color: #333; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.4); }
-        
-        .back-btn {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #fff;
-            text-decoration: none;
-            background: #0f3460;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
@@ -102,24 +122,31 @@
     <a href="index.html" class="back-btn">◀ 메인으로</a>
 
     <div id="game-header">
-        <span id="header-mode-info">스테이지: <span id="stage-display" style="color: #f1c40f;">1</span></span>
-        <span>점수: <span id="score">0</span></span>
-        <span>공 개수: <span id="ball-count">1</span></span>
+        <div class="header-group" style="align-items: flex-start;">
+            <span id="header-mode-info">스테이지: <span id="stage-display" style="color: #f1c40f;">1</span></span>
+            <span class="high-score-text">최고 점수: <span id="high-score">0</span></span>
+        </div>
+        <div class="header-group">
+            <span>점수: <span id="score">0</span></span>
+        </div>
+        <div class="header-group" style="align-items: flex-end;">
+            <span>공 개수: <span id="ball-count">1</span></span>
+        </div>
     </div>
 
     <div id="canvas-container">
         <canvas id="gameCanvas"></canvas>
         
         <div id="start-screen" class="overlay-screen">
-            <h2 id="message" style="margin-bottom: 20px; text-align: center;">멀티볼 벽돌 깨기!</h2>
+            <h2 id="message" style="margin-bottom: 20px; color: #fff;">멀티볼 벽돌 깨기!</h2>
             <button class="btn" onclick="startGame('stage')">🎯 스테이지 모드</button>
-            <button class="btn btn-purple" onclick="startGame('infinite')">🔥 무한 생존 모드</button>
+            <button class="btn btn-purple" onclick="startGame('infinite')">🔥 무한 모드</button>
         </div>
 
         <div id="next-stage-screen" class="overlay-screen" style="display: none;">
             <h2 style="color: #f1c40f; margin-bottom: 10px; font-size: 28px;">STAGE CLEAR!</h2>
             <p style="color: #ecf0f1; margin-bottom: 5px;">점수를 유지한 채 다음 스테이지로 이동합니다.</p>
-            <p style="color: #e74c3c; font-weight: bold; font-size: 14px;">주의: 벽돌의 최대 체력이 5 증가합니다!</p>
+            <p style="color: #e74c3c; font-weight: bold; font-size: 14px; margin-bottom: 20px;">주의: 벽돌의 최대 체력이 5 증가합니다!</p>
             <button class="btn btn-gold" onclick="nextStage()">다음 스테이지 도전</button>
         </div>
     </div>
@@ -127,19 +154,23 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+        
         const scoreDisplay = document.getElementById("score");
         const ballCountDisplay = document.getElementById("ball-count");
         const headerModeInfo = document.getElementById("header-mode-info");
+        const highScoreDisplay = document.getElementById("high-score");
         
         const startScreen = document.getElementById("start-screen");
         const nextStageScreen = document.getElementById("next-stage-screen");
         const messageDisplay = document.getElementById("message");
 
+        let stageHighScore = localStorage.getItem('brickStageHighScore') || 0;
+        let infiniteHighScore = localStorage.getItem('brickInfiniteHighScore') || 0;
+
         let animationId;
         let isPlaying = false;
         let score = 0;
         let gameMode = 'stage'; 
-        
         let stage = 1;
 
         let lastDropTime = 0;
@@ -147,22 +178,18 @@
         let linesDropped = 0;
         let currentMaxHp = 5;
 
-        function resizeCanvas() {
-            const containerWidth = document.getElementById("canvas-container").clientWidth;
-            canvas.width = containerWidth > 600 ? 600 : containerWidth;
-            canvas.height = window.innerHeight - 100;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
+        // 패들 설정
         let paddleHeight = 15;
-        let paddleWidth = canvas.width / 4;
-        let paddleX = (canvas.width - paddleWidth) / 2;
+        let paddleWidth = 150;
+        let paddleX = 0; // 리사이즈 후 중앙 정렬
         
+        // 공 설정
         let ballRadius = 8;
         let balls = []; 
+        // 💡 공 속도 20% 감소 (5.0 -> 4.0)
         let baseSpeed = 4.0; 
 
+        // 벽돌 설정
         let brickColumnCount = 7;
         let brickRowCount = 8; 
         let brickPadding = 6;
@@ -172,48 +199,75 @@
 
         const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
 
-        function createRow(maxHp) {
+        // 💡 화면 크기에 맞춰 하단 마진 없이 캔버스 꽉 채우기
+        function resizeCanvas() {
+            const containerWidth = document.getElementById("canvas-container").clientWidth;
+            // 패딩 20px(양옆 10px)을 제외한 가로 길이
+            canvas.width = (containerWidth - 20) > 600 ? 600 : (containerWidth - 20);
+            
+            // 상단 헤더 공간(약 120px 내외)을 뺀 나머지 세로 영역 꽉 채우기
+            canvas.height = window.innerHeight - 130; 
+            
+            paddleX = (canvas.width - paddleWidth) / 2;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 💡 그리드 초기화 함수 (첫 시작 시 100% 무작위 블록 1개에 +5 할당)
+        function initGrid(isInfinite) {
+            grid = [];
+            let rows = isInfinite ? 8 : brickRowCount;
+            let maxHp = isInfinite ? currentMaxHp : stage * 5;
+
+            // 전체(rows * cols) 블록 중 어디에 +5를 넣을지 행(R)/열(C) 결정
+            let forceR = Math.floor(Math.random() * rows);
+            let forceC = Math.floor(Math.random() * brickColumnCount);
+
+            for (let r = 0; r < rows; r++) {
+                let row = [];
+                let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
+                
+                for (let c = 0; c < brickColumnCount; c++) {
+                    let rand = Math.random();
+                    let isForceItem = (r === forceR && c === forceC);
+
+                    if (rand < 0.15 && !isForceItem) {
+                        row.push({ status: 0, hp: 0, isItem: false, w: brickWidth, h: brickHeight });
+                    } else if (isForceItem || rand > 0.97) { // 확정이거나 3% 확률
+                        row.push({ status: 1, hp: 1, isItem: true, w: brickWidth, h: brickHeight });
+                    } else {
+                        let randomHp = Math.floor(Math.random() * maxHp) + 1;
+                        row.push({ status: 1, hp: randomHp, isItem: false, w: brickWidth, h: brickHeight });
+                    }
+                }
+                grid.push(row);
+            }
+        }
+
+        // 무한 모드 블록 1줄 드롭 (여긴 확정 아이템 없음)
+        function dropBricks() {
             let row = [];
             let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
             
             for (let c = 0; c < brickColumnCount; c++) {
-                const rand = Math.random();
+                let rand = Math.random();
                 if (rand < 0.15) {
                     row.push({ status: 0, hp: 0, isItem: false, w: brickWidth, h: brickHeight });
-                } 
-                // [밸런스 패치] 아이템 등장 확률을 10%에서 7%로 하향 (0.9 -> 0.93)
-                else if (rand > 0.93) {
+                } else if (rand > 0.97) {
                     row.push({ status: 1, hp: 1, isItem: true, w: brickWidth, h: brickHeight });
                 } else {
-                    let randomHp = Math.floor(Math.random() * maxHp) + 1;
+                    let randomHp = Math.floor(Math.random() * currentMaxHp) + 1;
                     row.push({ status: 1, hp: randomHp, isItem: false, w: brickWidth, h: brickHeight });
                 }
             }
-            return row;
-        }
 
-        function initStageGrid() {
-            grid = [];
-            let maxHp = stage * 5;
-            for (let r = 0; r < brickRowCount; r++) {
-                grid.push(createRow(maxHp));
-            }
-        }
-
-        function initInfiniteGrid() {
-            grid = [];
-            for (let i = 0; i < 4; i++) {
-                grid.push(createRow(currentMaxHp));
-            }
-        }
-
-        function dropBricks() {
-            grid.unshift(createRow(currentMaxHp));
+            grid.unshift(row);
             linesDropped++;
             
             currentMaxHp = Math.min(5 + Math.floor(linesDropped / 2), 30);
             document.getElementById("max-hp-display").innerText = currentMaxHp;
 
+            // 바닥에 닿았는지 체크
             for (let r = 0; r < grid.length; r++) {
                 let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
                 if (brickY + brickHeight > canvas.height - paddleHeight - 20) {
@@ -232,10 +286,8 @@
         }
 
         function fireMultiBalls() {
-            // [밸런스 패치] 10개 발사에서 5개 발사로 하향
             const extraBalls = 5;
             for (let i = 0; i < extraBalls; i++) {
-                // 5개에 맞춰 부채꼴 각도 조절
                 let angleDeg = 30 + (120 / extraBalls) * i; 
                 let angleRad = angleDeg * Math.PI / 180;
                 
@@ -247,15 +299,19 @@
                 
                 createBall(startX, startY, dx, dy);
             }
-            if (balls.length > 100) balls.splice(100);
+            if (balls.length > 150) balls.splice(150);
         }
 
         function movePaddle(e) {
+            if (!isPlaying) return;
             let clientX;
             if (e.touches) clientX = e.touches[0].clientX;
             else clientX = e.clientX;
             
-            let relativeX = clientX - canvas.getBoundingClientRect().left;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            let relativeX = (clientX - rect.left) * scaleX;
+            
             if (relativeX > 0 && relativeX < canvas.width) {
                 paddleX = relativeX - paddleWidth / 2;
             }
@@ -293,12 +349,9 @@
 
         function drawPaddle() {
             ctx.beginPath();
-            ctx.rect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight);
+            ctx.roundRect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight, 5);
             ctx.fillStyle = "#e94560";
             ctx.fill();
-            ctx.strokeStyle = "#ff7675";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight);
             ctx.closePath();
         }
 
@@ -313,9 +366,9 @@
                         b.y = brickY;
                         
                         ctx.beginPath();
-                        ctx.rect(brickX, brickY, b.w, b.h);
+                        ctx.roundRect(brickX, brickY, b.w, b.h, 4);
                         
-                        ctx.font = "bold 14px Arial";
+                        ctx.font = "bold 15px Arial";
                         ctx.textAlign = "center";
                         ctx.textBaseline = "middle";
 
@@ -323,7 +376,6 @@
                             ctx.fillStyle = "#f1c40f"; 
                             ctx.fill();
                             ctx.fillStyle = "#000";
-                            // [밸런스 패치] 블록 표시 텍스트를 +5로 변경
                             ctx.fillText("+5", brickX + b.w / 2, brickY + b.h / 2);
                         } else {
                             ctx.fillStyle = hpColors[(b.hp - 1) % hpColors.length];
@@ -338,12 +390,14 @@
         }
 
         function collisionDetection() {
-            for (let r = 0; r < grid.length; r++) {
-                for (let c = 0; c < brickColumnCount; c++) {
-                    let b = grid[r][c];
-                    if (b.status === 1) {
-                        for (let i = 0; i < balls.length; i++) {
-                            let ball = balls[i];
+            for (let i = 0; i < balls.length; i++) {
+                let ball = balls[i];
+                let hitInThisFrame = false; 
+
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < brickColumnCount; c++) {
+                        let b = grid[r][c];
+                        if (b.status === 1) {
                             if (ball.x + ballRadius > b.x && ball.x - ballRadius < b.x + b.w && 
                                 ball.y + ballRadius > b.y && ball.y - ballRadius < b.y + b.h) {
                                 
@@ -368,10 +422,13 @@
                                     score += 10; 
                                     if (b.isItem) fireMultiBalls();
                                 }
+                                
+                                hitInThisFrame = true; 
                                 break; 
                             }
                         }
                     }
+                    if (hitInThisFrame) break; 
                 }
             }
         }
@@ -410,6 +467,7 @@
                     ball.dy = -ball.dy;
                 }
                 
+                // 패들 충돌
                 if (ball.y + ball.dy > canvas.height - paddleHeight - ballRadius - 10) {
                     if (ball.x > paddleX - ballRadius && ball.x < paddleX + paddleWidth + ballRadius) {
                         let hitPoint = ball.x - (paddleX + paddleWidth / 2);
@@ -423,6 +481,10 @@
                     } else if (ball.y + ball.dy > canvas.height) {
                         continue; 
                     }
+                }
+
+                if (Math.abs(ball.dy) < 0.5) {
+                    ball.dy = ball.dy > 0 ? 0.5 : -0.5;
                 }
 
                 ball.x += ball.dx;
@@ -464,23 +526,29 @@
             startScreen.style.display = "none";
             nextStageScreen.style.display = "none";
             
-            paddleWidth = canvas.width / 4;
+            // 시작 시 화면 크기 한번 더 맞추기
+            resizeCanvas();
+            
+            paddleWidth = 150;
             paddleX = (canvas.width - paddleWidth) / 2;
-            score = 0;
             balls = [];
-            createBall(canvas.width / 2, canvas.height - 40, (Math.random() > 0.5 ? 1 : -1) * baseSpeed, -baseSpeed);
+            createBall(canvas.width / 2, canvas.height - paddleHeight - ballRadius - 15, (Math.random() > 0.5 ? 1 : -1) * baseSpeed, -baseSpeed);
             
             if (gameMode === 'stage') {
                 stage = 1;
+                score = 0;
                 brickOffsetTop = 60;
+                highScoreDisplay.innerText = stageHighScore;
                 headerModeInfo.innerHTML = '스테이지: <span id="stage-display" style="color: #f1c40f;">1</span>';
-                initStageGrid();
+                initGrid(false);
             } else {
+                score = 0;
                 linesDropped = 0;
                 currentMaxHp = 5;
                 brickOffsetTop = 30;
+                highScoreDisplay.innerText = infiniteHighScore;
                 headerModeInfo.innerHTML = '최대 체력: <span id="max-hp-display" style="color: #e74c3c;">5</span>';
-                initInfiniteGrid();
+                initGrid(true);
                 lastDropTime = Date.now();
             }
             
@@ -493,13 +561,11 @@
             stage += 1;
             document.getElementById("stage-display").innerText = stage;
             
-            paddleWidth = canvas.width / 4;
             paddleX = (canvas.width - paddleWidth) / 2;
-            
-            initStageGrid(); 
+            initGrid(false); 
             
             balls = [];
-            createBall(paddleX + paddleWidth / 2, canvas.height - 40, (Math.random() > 0.5 ? 1 : -1) * baseSpeed, -baseSpeed);
+            createBall(paddleX + paddleWidth / 2, canvas.height - paddleHeight - ballRadius - 15, (Math.random() > 0.5 ? 1 : -1) * baseSpeed, -baseSpeed);
             
             isPlaying = true;
             draw();
@@ -508,9 +574,26 @@
         function gameOver() {
             isPlaying = false;
             cancelAnimationFrame(animationId);
+            
+            if (gameMode === 'stage') {
+                if (score > stageHighScore) {
+                    stageHighScore = score;
+                    localStorage.setItem('brickStageHighScore', stageHighScore);
+                }
+                messageDisplay.innerHTML = `게임 오버!<br><br>도달: 스테이지 ${stage}<br>최종 점수: <span style="color:#f1c40f;">${score}</span> 점`;
+            } else {
+                if (score > infiniteHighScore) {
+                    infiniteHighScore = score;
+                    localStorage.setItem('brickInfiniteHighScore', infiniteHighScore);
+                }
+                messageDisplay.innerHTML = `게임 오버!<br><br>최종 점수: <span style="color:#f1c40f;">${score}</span> 점`;
+            }
+
+            highScoreDisplay.innerText = gameMode === 'stage' ? stageHighScore : infiniteHighScore;
             startScreen.style.display = "flex";
-            messageDisplay.innerHTML = `게임 오버!<br><br>최종 점수: <span style="color:#f1c40f;">${score}</span> 점`;
         }
+
+        highScoreDisplay.innerText = stageHighScore;
     </script>
 </body>
 </html>
