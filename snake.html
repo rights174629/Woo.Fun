@@ -48,7 +48,7 @@
             max-width: 400px;
             display: flex;
             justify-content: space-between;
-            font-size: 20px;
+            font-size: 24px; /* 폰트 크기 살짝 증가 */
             font-weight: bold;
             margin-bottom: 15px;
             padding: 0 20px;
@@ -58,7 +58,7 @@
         canvas {
             background-color: #34495e;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border-radius: 8px;
+            border-radius: 10px;
         }
 
         .overlay-screen {
@@ -72,7 +72,7 @@
             align-items: center;
             justify-content: center;
             background-color: rgba(44, 62, 80, 0.95);
-            border-radius: 8px;
+            border-radius: 10px;
             z-index: 10;
         }
 
@@ -128,7 +128,7 @@
             display: grid;
             grid-template-columns: 70px 70px 70px;
             grid-template-rows: 70px 70px;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
         }
 
@@ -136,20 +136,21 @@
             background-color: #95a5a6;
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 15px;
             font-size: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
             cursor: pointer;
-            box-shadow: 0 4px 0 #7f8c8d;
+            box-shadow: 0 5px 0 #7f8c8d;
+            transition: background-color 0.1s;
         }
 
         .btn-pad:active {
             background-color: #7f8c8d;
             box-shadow: 0 0 0 #7f8c8d;
-            transform: translateY(4px);
+            transform: translateY(5px);
         }
 
         #btn-up { grid-column: 2; grid-row: 1; }
@@ -165,7 +166,7 @@
     <div id="game-container">
         
         <div id="top-bar">
-            <span>⭐ <span id="score">0</span></span>
+            <span>🍎 <span id="score">0</span></span>
             <span style="color: #f1c40f;">⏱️ <span id="time">00:00</span></span>
         </div>
 
@@ -186,9 +187,9 @@
             <div class="setting-group">
                 <label>이동 속도</label>
                 <select id="speed-select">
-                    <option value="5">느림 (초보자용)</option>
-                    <option value="8" selected>보통</option>
-                    <option value="13">빠름 (고수용)</option>
+                    <option value="6">느림 (초보자용)</option>
+                    <option value="10" selected>보통</option>
+                    <option value="16">빠름 (고수용)</option>
                 </select>
             </div>
 
@@ -229,10 +230,12 @@
         const resultTitle = document.getElementById("result-title");
         const resultDesc = document.getElementById("result-desc");
 
-        let gameLoopTimer;
+        let animationId;
+        let lastRenderTime = 0;
+        
         let tileCount = 15; 
         let gridSize; 
-        let speed = 8; 
+        let speed = 10; 
         let maxApples = 1;
 
         let snake = [];
@@ -241,14 +244,13 @@
         let foods = []; 
         let score = 0;
         
-        // 키 씹힘 방지용 입력 버퍼(큐)
         let directionQueue = []; 
 
         let timerInterval;
         let startTime = 0;
 
         function resizeCanvas() {
-            let size = Math.min(window.innerWidth - 20, window.innerHeight - 320); 
+            let size = Math.min(window.innerWidth - 20, window.innerHeight - 350); 
             if (size > 500) size = 500; 
             
             gridSize = Math.floor(size / tileCount);
@@ -272,7 +274,7 @@
         }
 
         function startGame() {
-            clearTimeout(gameLoopTimer); 
+            cancelAnimationFrame(animationId);
             clearInterval(timerInterval);
             
             startScreen.style.display = "none"; 
@@ -290,13 +292,14 @@
             score = 0;
             scoreElement.innerHTML = score;
             foods = [];
-            directionQueue = []; // 게임 시작 시 버퍼 비우기
+            directionQueue = []; 
             
             timeElement.innerText = "00:00";
             startTime = 0; 
+            lastRenderTime = performance.now();
             
             generateFood();
-            main();
+            animationId = requestAnimationFrame(gameLoop);
         }
 
         function generateFood() {
@@ -318,29 +321,34 @@
             }
         }
 
-        // 입력 버퍼에서 꺼내서 뱀 방향 적용
         function processDirectionQueue() {
             if (directionQueue.length > 0) {
-                let direction = directionQueue.shift(); // 큐에서 가장 먼저 들어온 방향 꺼내기
+                let direction = directionQueue.shift(); 
                 
                 const goingUp = dy === -1;
                 const goingDown = dy === 1;
                 const goingRight = dx === 1;
                 const goingLeft = dx === -1;
 
-                // 유효한 방향인지(반대 방향은 무시) 확인 후 적용
                 if (direction === 'LEFT' && !goingRight) { dx = -1; dy = 0; }
                 else if (direction === 'UP' && !goingDown) { dx = 0; dy = -1; }
                 else if (direction === 'RIGHT' && !goingLeft) { dx = 1; dy = 0; }
                 else if (direction === 'DOWN' && !goingUp) { dx = 0; dy = 1; }
                 else {
-                    // 유효하지 않은 입력(예: 오른쪽 가는데 왼쪽 누름)이면 버퍼의 다음 키를 즉시 검사
                     processDirectionQueue(); 
                 }
             }
         }
 
-        function main() {
+        // 💡 부드러운 타이밍을 보장하는 requestAnimationFrame 게임 루프
+        function gameLoop(currentTime) {
+            animationId = requestAnimationFrame(gameLoop);
+            
+            const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
+            if (secondsSinceLastRender < 1 / speed) return;
+            
+            lastRenderTime = currentTime;
+
             if (hasGameEnded()) {
                 endGame(false);
                 return;
@@ -351,17 +359,15 @@
                 return;
             }
 
-            gameLoopTimer = setTimeout(function() {
-                processDirectionQueue(); // 이동하기 직전에 버퍼에 쌓인 방향키 확인
-                clearCanvas();
-                drawFood();
-                advanceSnake();
-                drawSnake();
-                main();
-            }, 1000 / speed);
+            processDirectionQueue(); 
+            clearCanvas();
+            drawFood();
+            advanceSnake();
+            drawSnake();
         }
 
         function endGame(isPerfectClear) {
+            cancelAnimationFrame(animationId);
             clearInterval(timerInterval); 
             resultScreen.style.display = "flex";
             
@@ -372,11 +378,11 @@
             if (isPerfectClear) {
                 resultTitle.innerText = "🎉 퍼펙트 클리어! 🎉";
                 resultTitle.style.color = "#f1c40f";
-                resultDesc.innerHTML = `전설의 진(眞) 엔딩을 보셨습니다!<br>맵을 빈틈없이 100% 채웠습니다.<br><br>최종 점수: <span style="color:#2ecc71; font-weight:bold;">${score}</span> 점<br>소요 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
+                resultDesc.innerHTML = `전설의 진(眞) 엔딩을 보셨습니다!<br>맵을 빈틈없이 100% 채웠습니다.<br><br>먹은 사과: <span style="color:#e74c3c; font-weight:bold;">${score}</span> 개<br>소요 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
             } else {
                 resultTitle.innerText = "게임 오버";
                 resultTitle.style.color = "#e74c3c";
-                resultDesc.innerHTML = `아쉽네요! 몸이 꼬였거나 벽에 부딪혔습니다.<br>맵 채우기 달성률: ${fillPercent}% (${snake.length}/${totalTiles}칸)<br><br>최종 점수: <span style="color:#2ecc71; font-weight:bold;">${score}</span> 점<br>생존 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
+                resultDesc.innerHTML = `아쉽네요! 몸이 꼬였거나 벽에 부딪혔습니다.<br>맵 채우기 달성률: ${fillPercent}% (${snake.length}/${totalTiles}칸)<br><br>먹은 사과: <span style="color:#e74c3c; font-weight:bold;">${score}</span> 개<br>생존 시간: <span style="color:#f1c40f;">${finalTime}</span>`;
             }
         }
 
@@ -402,8 +408,12 @@
         function drawSnake() {
             snake.forEach((part, index) => {
                 ctx.fillStyle = index === 0 ? '#2ecc71' : '#27ae60'; 
+                // 💡 뱀 모서리를 아주 살짝 둥글게 표현하여 시각적으로 더 부드러워 보이게 설정
+                ctx.beginPath();
+                ctx.roundRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize, 4);
+                ctx.fill();
+                
                 ctx.strokeStyle = '#2c3e50';
-                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
                 ctx.lineWidth = 1;
                 ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
             });
@@ -418,7 +428,8 @@
             let eatenFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
 
             if (eatenFoodIndex > -1) {
-                score += 10;
+                // 💡 사과 1개당 점수 1씩 정확히 증가
+                score += 1;
                 scoreElement.innerHTML = score;
                 foods.splice(eatenFoodIndex, 1);
                 generateFood();
@@ -442,14 +453,14 @@
             return hitLeftWall || hitRightWall || hitToptWall || hitBottomWall;
         }
 
-        // 입력 큐(버퍼)에 방향키 밀어넣기
         function changeDirection(direction) {
-            // 한 번에 무한정 큐가 쌓이는 것을 방지 (최대 3개까지만 예약)
             if (directionQueue.length < 3) {
-                directionQueue.push(direction);
+                // 연속적인 같은 방향 입력 무시 (최적화)
+                if (directionQueue[directionQueue.length - 1] !== direction) {
+                    directionQueue.push(direction);
+                }
             }
             
-            // 처음 방향키를 누르는 순간 스톱워치 가동
             if (dx === 0 && dy === 0 && startTime === 0 && directionQueue.length === 1) {
                 startTime = Date.now();
                 timerInterval = setInterval(updateTime, 1000);
@@ -461,16 +472,19 @@
             const W_KEY = 87, A_KEY = 65, S_KEY = 83, D_KEY = 68;
             const keyPressed = event.keyCode;
 
-            if (keyPressed === LEFT_KEY || keyPressed === A_KEY) changeDirection('LEFT');
-            if (keyPressed === UP_KEY || keyPressed === W_KEY) changeDirection('UP');
-            if (keyPressed === RIGHT_KEY || keyPressed === D_KEY) changeDirection('RIGHT');
-            if (keyPressed === DOWN_KEY || keyPressed === S_KEY) changeDirection('DOWN');
+            if (keyPressed === LEFT_KEY || keyPressed === A_KEY) { event.preventDefault(); changeDirection('LEFT'); }
+            if (keyPressed === UP_KEY || keyPressed === W_KEY) { event.preventDefault(); changeDirection('UP'); }
+            if (keyPressed === RIGHT_KEY || keyPressed === D_KEY) { event.preventDefault(); changeDirection('RIGHT'); }
+            if (keyPressed === DOWN_KEY || keyPressed === S_KEY) { event.preventDefault(); changeDirection('DOWN'); }
         });
 
+        // 💡 딜레이 없는 즉각적인 터치/클릭 반응을 위해 pointerdown 이벤트 사용
         function addTouchControl(id, direction) {
             const btn = document.getElementById(id);
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); changeDirection(direction); });
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); changeDirection(direction); });
+            btn.addEventListener('pointerdown', (e) => { 
+                e.preventDefault(); 
+                changeDirection(direction); 
+            });
         }
 
         addTouchControl('btn-up', 'UP');
