@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>티렉스 런</title>
+    <title>티렉스 런 (초고속 & 렌더링 최적화)</title>
     <style>
         body {
             margin: 0;
@@ -38,7 +38,7 @@
 
         #game-container {
             width: 100%;
-            max-width: 1000px; 
+            max-width: 800px; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -65,23 +65,21 @@
         canvas {
             width: 100%;
             height: auto;
-            aspect-ratio: 10 / 4; 
+            aspect-ratio: 2 / 1; 
             background-color: #f7f7f7;
             border-bottom: 2px solid #535353;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            image-rendering: pixelated; /* 도트가 깨지지 않게 선명히 유지 */
+            image-rendering: pixelated; 
         }
 
         #mobile-controls {
             display: flex;
             width: 100%;
-            max-width: 1000px;
             gap: 12px;
             padding: 15px 20px;
             box-sizing: border-box;
         }
 
-        /* 💡 점프/숙이기 버튼 쫀득한 애니메이션 추가 */
         .control-btn {
             flex: 1;
             background-color: #e0e0e0;
@@ -155,7 +153,7 @@
             <span id="score">00000</span>
         </div>
         
-        <canvas id="gameCanvas" width="1000" height="400"></canvas>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
         
         <div id="mobile-controls">
             <div id="btn-duck" class="control-btn">▼ 숙이기</div>
@@ -188,36 +186,30 @@
         const cactusImg = new Image(); cactusImg.src = 'Cactus.png';
         const birdImg = new Image(); birdImg.src = 'Bird.png';
 
-        dinoUpImg.onload = () => {
-            if (!isPlaying) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawGround();
-                dino.draw();
-            }
-        };
-
         let animationId;
         let isPlaying = false;
         
+        let lastTime = 0;
+        let globalTime = 0;
+
         let score = 0;
         let highScore = localStorage.getItem("trexHighScore") || 0;
         highScoreElement.innerText = "HI " + String(Math.floor(highScore)).padStart(5, '0');
 
-        let gameSpeed = 7.5; 
-        let frameCount = 0;
+        // 💡 미친 속도 시작: 16.0
+        let gameSpeed = 16.0; 
 
-        // 바닥 높이 설정
         const groundY = 350; 
 
-        // 💡 1. 공룡 크기 대폭 상향 (90x90)
         const dino = {
             x: 60,
-            w: 90, // 기존 56에서 90으로 상향
+            w: 90, 
             h: 90, 
             y: 0, 
             dy: 0,
-            gravity: 0.7,   // 몸집이 커졌으므로 중력을 살짝 무겁게 조정
-            jumpPower: -18, // 더 높이 뛰도록 점프력 상향
+            // 💡 초고속 맞춤형 극한의 중력 엔진 (빠르게 튀어오르고 바위처럼 떨어짐)
+            gravity: 1.3,   
+            jumpPower: -24.0, 
             isJumping: false,
             isDucking: false,
             
@@ -228,14 +220,14 @@
                 this.isDucking = false;
             },
 
-            update() {
+            update(timeScale) {
                 if (this.isJumping && this.isDucking) {
-                    this.dy += this.gravity * 3.5; 
+                    this.dy += this.gravity * 5.0 * timeScale; // 공중에서 꽂히는 속도 5배
                 } else if (this.isJumping) {
-                    this.dy += this.gravity;
+                    this.dy += this.gravity * timeScale;
                 }
                 
-                this.y += this.dy;
+                this.y += this.dy * timeScale;
 
                 if (this.y + this.h >= groundY) {
                     this.y = groundY - this.h;
@@ -249,11 +241,14 @@
             draw() {
                 let img = (this.isDucking && !this.isJumping) ? dinoDownImg : dinoUpImg;
                 
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
+
                 if (img.complete && img.naturalHeight !== 0) {
-                    ctx.drawImage(img, this.x, this.y, this.w, this.h);
+                    ctx.drawImage(img, drawX, drawY, this.w, this.h);
                 } else {
                     ctx.fillStyle = "#535353";
-                    ctx.fillRect(this.x, this.y, this.w, (this.isDucking && !this.isJumping) ? this.h/2 : this.h);
+                    ctx.fillRect(drawX, drawY, this.w, (this.isDucking && !this.isJumping) ? this.h/2 : this.h);
                 }
             },
 
@@ -264,15 +259,20 @@
                 }
             },
 
-            // 💡 커진 덩치에 맞춰 정교하게 계산된 피격 판정(Hitbox)
             getHitBox() {
                 if (this.isDucking && !this.isJumping) {
-                    // 숙였을 때
                     return { x: this.x + 10, y: this.y + 45, w: this.w - 20, h: 45 };
                 } else {
-                    // 서있을 때
                     return { x: this.x + 15, y: this.y + 10, w: this.w - 30, h: this.h - 15 };
                 }
+            }
+        };
+
+        dinoUpImg.onload = () => {
+            if (!isPlaying) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGround();
+                dino.draw();
             }
         };
 
@@ -283,54 +283,47 @@
             constructor() {
                 this.type = (score >= 200 && Math.random() > 0.7) ? 'bird' : 'cactus';
                 this.x = canvas.width;
-                this.passed = false; 
-
+                
                 if (this.type === 'cactus') {
-                    // 💡 2. 쌍둥이 선인장 패턴 추가 (40% 확률로 2연속 선인장)
                     this.count = Math.random() > 0.6 ? 2 : 1; 
-                    
-                    // 선인장 1개의 기본 크기도 대폭 상향
                     this.baseW = Math.random() > 0.5 ? 55 : 80; 
                     this.h = Math.random() > 0.5 ? 85 : 120; 
-                    
-                    // 총 넓이는 선인장 갯수만큼 곱함
                     this.w = this.baseW * this.count;
                     this.y = groundY - this.h;
                 } else {
-                    // 새(익룡) 크기도 상향
                     this.w = 70;
                     this.h = 50;
-                    // 서 있으면 부딪히고, 숙이면 피할 수 있는 절묘한 Y좌표 계산
                     this.y = groundY - 105; 
                 }
             }
 
-            update() {
-                this.x -= gameSpeed;
+            update(timeScale) {
+                this.x -= gameSpeed * timeScale;
                 this.draw();
             }
 
             draw() {
+                let drawY = Math.floor(this.y);
                 if (this.type === 'cactus') {
-                    // 쌍둥이 선인장이면 2번 반복해서 그리기
                     for (let i = 0; i < this.count; i++) {
-                        let drawX = this.x + (i * this.baseW);
+                        let drawX = Math.floor(this.x + (i * this.baseW));
                         if (cactusImg.complete && cactusImg.naturalHeight !== 0) {
-                            ctx.drawImage(cactusImg, drawX, this.y, this.baseW, this.h);
+                            ctx.drawImage(cactusImg, drawX, drawY, this.baseW, this.h);
                         } else {
                             ctx.fillStyle = "#27ae60";
-                            ctx.fillRect(drawX, this.y, this.baseW, this.h);
+                            ctx.fillRect(drawX, drawY, this.baseW, this.h);
                         }
                     }
                 } else {
+                    let drawX = Math.floor(this.x);
                     if (birdImg.complete && birdImg.naturalHeight !== 0) {
-                        let flapY = (frameCount % 30 < 15) ? -4 : 4; 
-                        ctx.drawImage(birdImg, this.x, this.y + flapY, this.w, this.h);
+                        let flapY = (Math.floor(globalTime) % 30 < 15) ? -4 : 4; 
+                        ctx.drawImage(birdImg, drawX, drawY + flapY, this.w, this.h);
                     } else {
                         ctx.fillStyle = "#e74c3c";
-                        let flap = (frameCount % 20 < 10) ? -10 : 10; 
-                        ctx.fillRect(this.x, this.y + 20, this.w, 20); 
-                        ctx.fillRect(this.x + 15, this.y + 20 + flap, 25, 12); 
+                        let flap = (Math.floor(globalTime) % 20 < 10) ? -10 : 10; 
+                        ctx.fillRect(drawX, drawY + 20, this.w, 20); 
+                        ctx.fillRect(drawX + 15, drawY + 20 + flap, 25, 12); 
                     }
                 }
             }
@@ -344,14 +337,16 @@
                 this.h = 25;
                 this.speed = Math.random() * 0.5 + 1; 
             }
-            update() {
-                this.x -= this.speed;
+            update(timeScale) {
+                this.x -= this.speed * timeScale;
                 this.draw();
             }
             draw() {
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
                 ctx.fillStyle = "#e0e0e0";
-                ctx.fillRect(this.x, this.y, this.w, this.h);
-                ctx.fillRect(this.x + 15, this.y - 12, 40, 18);
+                ctx.fillRect(drawX, drawY, this.w, this.h);
+                ctx.fillRect(drawX + 15, drawY - 12, 40, 18);
             }
         }
 
@@ -364,15 +359,15 @@
             ctx.stroke();
             
             ctx.fillStyle = "#888";
-            for(let i=0; i<15; i++){
-                let nx = ((frameCount * 2) + i * 90) % canvas.width;
-                ctx.fillRect(canvas.width - nx, groundY + 5 + (i%3)*5, 4, 3);
+            for(let i = 0; i < 15; i++){
+                let nx = ((Math.floor(globalTime) * (gameSpeed * 0.3)) + i * 90) % canvas.width;
+                ctx.fillRect(Math.floor(canvas.width - nx), groundY + 5 + (i % 3) * 5, 4, 3);
             }
         }
 
         function checkCollision(obstacle) {
             const hitBox = dino.getHitBox();
-            const padding = 10; // 충돌 여유값
+            const padding = 10; 
 
             if (hitBox.x + padding < obstacle.x + obstacle.w - padding &&
                 hitBox.x + hitBox.w - padding > obstacle.x + padding &&
@@ -383,30 +378,44 @@
             return false;
         }
 
-        function animate() {
+        let lastCloudTime = 0;
+
+        function animate(currentTime) {
             if (!isPlaying) return;
+
+            if (!lastTime) lastTime = currentTime;
+            let deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            let timeScale = deltaTime / (1000 / 60);
+            if (timeScale > 3) timeScale = 1;
+
+            globalTime += timeScale;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGround();
 
-            // 💡 3. 점수 시스템 롤백: 달리기만 해도 쭉쭉 증가!
-            score += gameSpeed * 0.02;
+            score += gameSpeed * 0.02 * timeScale;
             scoreElement.innerText = String(Math.floor(score)).padStart(5, '0');
 
-            // 속도도 점수에 비례해 서서히 빨라짐 (최대 속도 22)
-            gameSpeed = Math.min(7.5 + (score * 0.002), 22);
+            // 💡 최고 속도 제한 40, 가속도를 0.006으로 펌핑
+            gameSpeed = Math.min(16.0 + (score * 0.006), 40.0);
 
-            if (frameCount % 180 === 0 || (frameCount === 0 && Math.random() > 0.5)) {
+            if (globalTime - lastCloudTime > 180 || (globalTime === 0 && Math.random() > 0.5)) {
                 clouds.push(new Cloud());
+                lastCloudTime = globalTime;
             }
-            clouds.forEach((cloud, index) => {
-                cloud.update();
-                if (cloud.x + cloud.w < 0) clouds.splice(index, 1);
-            });
 
-            // 덩치들이 커진 만큼 생성 간격을 여유 있게(최소 550픽셀 이상) 띄워줌
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                clouds[i].update(timeScale);
+                if (clouds[i].x + clouds[i].w < 0) {
+                    clouds.splice(i, 1);
+                }
+            }
+
+            // 엄청나게 빠른 속도에 맞춰 장애물 스폰 최소 간격 조정
             let lastObs = obstacles[obstacles.length - 1];
-            let minDistance = 550 + (gameSpeed * 15) + Math.random() * 250; 
+            let minDistance = 650 + (gameSpeed * 13) + Math.random() * 250; 
             
             if (!lastObs || canvas.width - lastObs.x > minDistance) {
                 if (Math.random() > 0.95) { 
@@ -414,20 +423,18 @@
                 }
             }
 
-            obstacles.forEach((obstacle, index) => {
-                obstacle.update();
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.update(timeScale);
                 
-                if (checkCollision(obstacle)) {
+                if (checkCollision(obs)) {
                     gameOver();
+                } else if (obs.x + obs.w < 0) {
+                    obstacles.splice(i, 1);
                 }
+            }
 
-                if (obstacle.x + obstacle.w < 0) {
-                    obstacles.splice(index, 1);
-                }
-            });
-
-            dino.update();
-            frameCount++;
+            dino.update(timeScale);
             animationId = requestAnimationFrame(animate);
         }
 
@@ -451,7 +458,6 @@
         const btnJump = document.getElementById('btn-jump');
         const btnDuck = document.getElementById('btn-duck');
 
-        // pointerdown 이벤트로 모바일 인풋 딜레이 제거
         function bindButton(btn, onDown, onUp) {
             btn.addEventListener('pointerdown', (e) => { e.preventDefault(); onDown(); });
             btn.addEventListener('pointerup', (e) => { e.preventDefault(); onUp(); });
@@ -469,12 +475,17 @@
             clouds = [];
             score = 0;
             scoreElement.innerText = "00000";
-            gameSpeed = 7.5;
-            frameCount = 0;
+            
+            // 💡 시작 속도 세팅
+            gameSpeed = 16.0;
+            
+            lastTime = 0;
+            globalTime = 0;
+            lastCloudTime = 0;
             
             dino.init();
             isPlaying = true;
-            animate();
+            animationId = requestAnimationFrame(animate);
         }
 
         function gameOver() {
