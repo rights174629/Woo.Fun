@@ -1,8 +1,0 @@
-Model Information:
-* title:	Tomato character
-* source:	https://sketchfab.com/3d-models/tomato-character-96574bc6b2f74b0791228756255b7fe0
-* author:	Seyed Mohsen (https://sketchfab.com/Seyed.Mohsen)
-
-Model License:
-* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
-* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
