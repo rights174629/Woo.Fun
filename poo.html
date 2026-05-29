@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>똥피하기 게임</title> 
+    <title>똥피하기 (초고속 & 렌더링 최적화)</title>
     <style>
         body {
             margin: 0;
@@ -54,7 +54,7 @@
             justify-content: space-between;
             padding: 0 10px;
             box-sizing: border-box;
-            font-size: 20px; /* 항목이 3개로 늘어나 폰트 크기 살짝 조정 */
+            font-size: 20px; 
             font-weight: bold;
             margin-bottom: 10px;
             color: #fff;
@@ -80,7 +80,6 @@
             box-sizing: border-box;
         }
 
-        /* 💡 쫀득한 버튼 애니메이션 적용 */
         .control-btn {
             flex: 1;
             background-color: #ff9f43;
@@ -94,14 +93,14 @@
             user-select: none;
             -webkit-touch-callout: none;
             cursor: pointer;
-            box-shadow: 0 6px 0 #d35400; /* 어두운 오렌지색 그림자 */
-            transition: all 0.1s ease; /* 부드러운 눌림 효과 */
+            box-shadow: 0 6px 0 #d35400; 
+            transition: all 0.1s ease; 
         }
 
         .control-btn:active {
-            transform: translateY(6px); /* 그림자 두께만큼 아래로 이동 */
-            box-shadow: 0 0 0 #d35400; /* 눌렸을 때 그림자 사라짐 */
-            background-color: #e67e22; /* 눌렸을 때 살짝 더 어두운 색상 */
+            transform: translateY(6px); 
+            box-shadow: 0 0 0 #d35400; 
+            background-color: #e67e22; 
         }
 
         .overlay-screen {
@@ -155,7 +154,6 @@
     <a href="index.html" class="back-btn">◀ 메인으로</a>
 
     <div id="game-container">
-        <!-- 💡 상단 스코어 보드에 타이머 추가 -->
         <div id="score-board">
             <span>최고: <span id="high-score">0</span></span>
             <span>시간: <span id="time">0</span>초</span>
@@ -172,7 +170,6 @@
         <div id="start-screen" class="overlay-screen">
             <h2>똥피하기</h2>
             <p style="margin-bottom: 10px; font-size: 18px;">방향키(◀ ▶) 또는 A/D로 움직이세요!</p>
-            <!-- 경고 문구 제거됨 -->
             <p style="margin-bottom: 25px; font-size: 14px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
             <button class="btn" onclick="startGame()">게임 시작</button>
         </div>
@@ -189,13 +186,12 @@
         const ctx = canvas.getContext("2d");
         const scoreElement = document.getElementById("score");
         const highScoreElement = document.getElementById("high-score");
-        const timeElement = document.getElementById("time"); // 타이머 요소 추가
+        const timeElement = document.getElementById("time");
         
         const startScreen = document.getElementById("start-screen");
         const gameOverScreen = document.getElementById("game-over-screen");
         const finalScoreElement = document.getElementById("final-score");
 
-        // 💡 모든 캐릭터 걷기 모션 에셋 로드
         const playerImg = new Image(); playerImg.src = 'Poo_Ch.png';
         const playerLeftImg = new Image(); playerLeftImg.src = 'Poo_Ch_Left.png';
         const playerRightImg = new Image(); playerRightImg.src = 'Poo_Ch_Right.png';
@@ -210,13 +206,17 @@
         let animationId;
         let isPlaying = false;
         
+        let lastTime = 0;
+        let globalTime = 0; 
+        let spawnCounter = 0;
+        
+        let scoreFloat = 0; 
         let score = 0;
-        let startTime = 0; // 시작 시간 기록용
+        let startTime = 0; 
         let highScore = localStorage.getItem("pooHighScore") || 0;
         highScoreElement.innerText = highScore;
 
-        let frameCount = 0;
-        let spawnRate = 45; 
+        let spawnRate = 35; // 💡 기본 생성 주기 단축 (45 -> 35)
 
         let keys = {
             left: false,
@@ -230,13 +230,13 @@
             h: tileSize,
             x: canvas.width / 2 - tileSize / 2, 
             y: canvas.height - tileSize - 30, 
-            speed: 5, 
+            speed: 10, 
             hasUmbrella: false,
             umbrellaEndTime: 0,
             
-            update() {
-                if (keys.left) this.x -= this.speed;
-                if (keys.right) this.x += this.speed;
+            update(timeScale) {
+                if (keys.left) this.x -= this.speed * timeScale;
+                if (keys.right) this.x += this.speed * timeScale;
 
                 if (this.x < 0) this.x = 0;
                 if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
@@ -247,9 +247,8 @@
             draw() {
                 let currentImg = playerImg;
 
-                // 💡 걷기 애니메이션 로직 (8프레임마다 걷기 모션이 교차됨)
                 let isWalking = (keys.left || keys.right);
-                let isWalkFrame = isWalking && (Math.floor(frameCount / 8) % 2 === 0);
+                let isWalkFrame = isWalking && (Math.floor(globalTime / 8) % 2 === 0);
 
                 if (this.hasUmbrella) {
                     let timeLeft = this.umbrellaEndTime - Date.now();
@@ -258,7 +257,7 @@
                     if (timeLeft > 0) {
                         if (timeLeft <= 1000) {
                             if (Math.floor(timeLeft / 200) % 2 === 0) {
-                                isBlinking = true; // 반짝임 효과 (맨몸으로 잠깐 보임)
+                                isBlinking = true; 
                             }
                         }
                     } else {
@@ -266,29 +265,29 @@
                     }
 
                     if (this.hasUmbrella && !isBlinking) {
-                        // 우산 쓴 상태의 걷기
                         if (keys.left && isWalkFrame) currentImg = playerUmbLeftImg;
                         else if (keys.right && isWalkFrame) currentImg = playerUmbRightImg;
                         else currentImg = playerUmbImg;
                     } else {
-                        // 무적이 끝났거나 반짝일 때의 맨몸 걷기
                         if (keys.left && isWalkFrame) currentImg = playerLeftImg;
                         else if (keys.right && isWalkFrame) currentImg = playerRightImg;
                         else currentImg = playerImg;
                     }
                 } else {
-                    // 기본 맨몸 걷기
                     if (keys.left && isWalkFrame) currentImg = playerLeftImg;
                     else if (keys.right && isWalkFrame) currentImg = playerRightImg;
                     else currentImg = playerImg;
                 }
 
-                // 렌더링
+                // 💡 최적화: Math.floor 로 렌더링 부하 완화
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
+
                 if (currentImg.complete && currentImg.naturalHeight !== 0) {
-                    ctx.drawImage(currentImg, this.x, this.y, this.w, this.h);
+                    ctx.drawImage(currentImg, drawX, drawY, this.w, this.h);
                 } else {
                     ctx.fillStyle = this.hasUmbrella ? "#f1c40f" : "#3498db";
-                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                    ctx.fillRect(drawX, drawY, this.w, this.h);
                 }
             },
 
@@ -315,26 +314,31 @@
                 this.h = 72;
                 this.x = Math.random() * (canvas.width - this.w);
                 this.y = -this.h; 
-                this.speed = Math.random() * 2 + 3.5 + (score / 1500); 
+                // 💡 속도 대폭 상향: 기본 속도 증가 및 가속 스케일링 폭업
+                this.speed = Math.random() * 3 + 6.0 + (score / 800); 
                 
                 this.isBouncing = false;
                 this.vx = 0; 
                 this.gravity = 0.8; 
             }
-            update() {
+            
+            update(timeScale) {
                 if (this.isBouncing) {
-                    this.speed += this.gravity;
-                    this.x += this.vx;
+                    this.speed += this.gravity * timeScale;
+                    this.x += this.vx * timeScale;
                 }
-                this.y += this.speed;
+                this.y += this.speed * timeScale;
                 this.draw();
             }
+            
             draw() {
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
                 if (poopImg.complete && poopImg.naturalHeight !== 0) {
-                    ctx.drawImage(poopImg, this.x, this.y, this.w, this.h);
+                    ctx.drawImage(poopImg, drawX, drawY, this.w, this.h);
                 } else {
                     ctx.fillStyle = "#8B4513";
-                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                    ctx.fillRect(drawX, drawY, this.w, this.h);
                 }
             }
             bounce() {
@@ -355,27 +359,27 @@
 
                 this.y = -this.h; 
                 this.state = 'warning'; 
-                this.maxTimer = 90;
+                this.maxTimer = 90; 
                 this.timer = this.maxTimer; 
-                this.speed = 35; 
+                this.speed = 45; // 💡 파멸의 똥 속도 상향 (35 -> 45)
                 
                 this.isBouncing = false;
                 this.vx = 0;
                 this.gravity = 0.8;
             }
 
-            update() {
+            update(timeScale) {
                 if (this.state === 'warning') {
-                    this.timer--;
+                    this.timer -= timeScale;
                     if (this.timer <= 0) {
                         this.state = 'strike'; 
                     }
                 } else if (this.state === 'strike') {
                     if (this.isBouncing) {
-                        this.speed += this.gravity;
-                        this.x += this.vx;
+                        this.speed += this.gravity * timeScale;
+                        this.x += this.vx * timeScale;
                     }
-                    this.y += this.speed;
+                    this.y += this.speed * timeScale;
                     
                     if (this.y > canvas.height || this.x < -100 || this.x > canvas.width + 100) {
                         this.state = 'done';
@@ -385,22 +389,25 @@
             }
 
             draw() {
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
+                
                 if (this.state === 'warning') {
-                    let t = this.timer / this.maxTimer;
+                    let t = Math.max(0, this.timer / this.maxTimer);
                     let blinkInterval = Math.max(2, Math.floor(t * 15));
                     
-                    if (frameCount % blinkInterval < Math.max(1, blinkInterval / 2)) {
+                    if (Math.floor(globalTime) % blinkInterval < Math.max(1, blinkInterval / 2)) {
                         ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-                        ctx.fillRect(this.x + this.w/2 - 15, 0, 30, canvas.height);
+                        ctx.fillRect(drawX + this.w/2 - 15, 0, 30, canvas.height);
                         ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-                        ctx.fillRect(this.x + this.w/2 - 3, 0, 6, canvas.height);
+                        ctx.fillRect(drawX + this.w/2 - 3, 0, 6, canvas.height);
                     }
                 } else if (this.state === 'strike') {
                     if (poopImg.complete && poopImg.naturalHeight !== 0) {
-                        ctx.drawImage(poopImg, this.x, this.y, this.w, this.h);
+                        ctx.drawImage(poopImg, drawX, drawY, this.w, this.h);
                     } else {
                         ctx.fillStyle = "#c0392b"; 
-                        ctx.fillRect(this.x, this.y, this.w, this.h);
+                        ctx.fillRect(drawX, drawY, this.w, this.h);
                     }
                 }
             }
@@ -418,18 +425,22 @@
                 this.h = tileSize;
                 this.x = Math.random() * (canvas.width - this.w);
                 this.y = -this.h; 
-                this.speed = 4; 
+                this.speed = 6; // 💡 아이템 떨어지는 속도도 살짝 증가
             }
-            update() {
-                this.y += this.speed;
+            
+            update(timeScale) {
+                this.y += this.speed * timeScale;
                 this.draw();
             }
+            
             draw() {
+                let drawX = Math.floor(this.x);
+                let drawY = Math.floor(this.y);
                 if (umbImg.complete && umbImg.naturalHeight !== 0) {
-                    ctx.drawImage(umbImg, this.x, this.y, this.w, this.h);
+                    ctx.drawImage(umbImg, drawX, drawY, this.w, this.h);
                 } else {
                     ctx.fillStyle = "#2ecc71";
-                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                    ctx.fillRect(drawX, drawY, this.w, this.h);
                 }
             }
         }
@@ -445,23 +456,37 @@
             return false;
         }
 
-        function animate() {
+        function animate(currentTime) {
             if (!isPlaying) return;
+
+            if (!lastTime) lastTime = currentTime;
+            let deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            let timeScale = deltaTime / (1000 / 60);
+            if (timeScale > 3) timeScale = 1; 
+
+            globalTime += timeScale;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 💡 생존 시간(초) 업데이트
             let elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
             timeElement.innerText = elapsedSeconds;
 
-            score++;
-            if (score % 10 === 0) {
+            let oldScore = score;
+            scoreFloat += timeScale;
+            score = Math.floor(scoreFloat);
+            
+            if (score !== oldScore && score % 10 === 0) {
                 scoreElement.innerText = score;
             }
 
-            spawnRate = Math.max(15, 45 - Math.floor(score / 500));
+            // 💡 속도가 빨라짐에 따라 스폰 간격도 더 빠르게 단축
+            spawnRate = Math.max(10, 35 - Math.floor(score / 400));
+            spawnCounter += timeScale;
 
-            if (frameCount % spawnRate === 0) {
+            if (spawnCounter >= spawnRate) {
+                spawnCounter = 0; 
                 
                 if (Math.random() < 0.01) {
                     items.push(new Item());
@@ -469,7 +494,6 @@
                     poops.push(new Poop());
                 }
 
-                // 💡 파멸의 일격 확률 5%로 상승
                 if (score >= 2000 && meteors.length < 5) {
                     if (Math.random() < 0.05) {
                         meteors.push(new MeteorStrike(player.x + player.w / 2));
@@ -479,12 +503,12 @@
 
             for (let i = items.length - 1; i >= 0; i--) {
                 let item = items[i];
-                item.update();
+                item.update(timeScale); 
                 
                 if (checkCollision(item, player)) {
                     player.equipUmbrella();
                     items.splice(i, 1); 
-                    score += 50; 
+                    scoreFloat += 50; 
                 } else if (item.y > canvas.height) {
                     items.splice(i, 1);
                 }
@@ -492,7 +516,7 @@
 
             for (let i = poops.length - 1; i >= 0; i--) {
                 let poop = poops[i];
-                poop.update();
+                poop.update(timeScale); 
                 
                 if (poop.isBouncing) {
                     if (poop.y > canvas.height || poop.x < -100 || poop.x > canvas.width + 100) {
@@ -504,7 +528,7 @@
                 if (checkCollision(poop, player)) {
                     if (player.hasUmbrella) {
                         poop.bounce();
-                        score += 20; 
+                        scoreFloat += 20; 
                     } else {
                         gameOver();
                     }
@@ -515,7 +539,7 @@
 
             for (let i = meteors.length - 1; i >= 0; i--) {
                 let meteor = meteors[i];
-                meteor.update();
+                meteor.update(timeScale); 
 
                 if (meteor.state === 'done') {
                     meteors.splice(i, 1);
@@ -526,7 +550,7 @@
                     if (checkCollision(meteor, player)) {
                         if (player.hasUmbrella) {
                             meteor.bounce();
-                            score += 50; 
+                            scoreFloat += 50; 
                         } else {
                             gameOver();
                         }
@@ -534,8 +558,7 @@
                 }
             }
 
-            player.update();
-            frameCount++;
+            player.update(timeScale); 
             animationId = requestAnimationFrame(animate);
         }
 
@@ -552,10 +575,9 @@
         const btnRight = document.getElementById('btn-right');
 
         function bindButton(btn, directionKey) {
-            btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[directionKey] = true; });
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[directionKey] = true; });
-            btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[directionKey] = false; });
-            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[directionKey] = false; });
+            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); keys[directionKey] = true; });
+            btn.addEventListener('pointerup', (e) => { e.preventDefault(); keys[directionKey] = false; });
+            btn.addEventListener('pointercancel', (e) => { e.preventDefault(); keys[directionKey] = false; });
         }
 
         bindButton(btnLeft, 'left');
@@ -568,15 +590,16 @@
             poops = [];
             items = [];
             meteors = []; 
+            scoreFloat = 0;
             score = 0;
             scoreElement.innerText = score;
             
-            // 💡 시작 시 시간 기록 및 초기화
             startTime = Date.now();
             timeElement.innerText = "0";
 
-            frameCount = 0;
-            spawnRate = 45;
+            spawnCounter = 0;
+            globalTime = 0;
+            spawnRate = 35; // 초기 스폰 속도 맞춤
             
             player.x = canvas.width / 2 - player.w / 2;
             player.hasUmbrella = false;
@@ -584,7 +607,8 @@
             keys.right = false;
 
             isPlaying = true;
-            animate();
+            lastTime = 0; 
+            animationId = requestAnimationFrame(animate);
         }
 
         function gameOver() {
