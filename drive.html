@@ -2,94 +2,511 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Three.js 드라이빙 기초</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 무한 런 (퍼펙트 에디션)</title>
     <style>
-        body { margin: 0; overflow: hidden; touch-action: none; }
+        body { margin: 0; overflow: hidden; touch-action: none; background-color: #000; font-family: 'Segoe UI', sans-serif; user-select: none; -webkit-user-select: none; }
         
-        /* 💡 모바일 버튼 스타일 */
-        .controls { position: absolute; bottom: 30px; display: flex; gap: 20px; z-index: 10; }
-        #left-controls { left: 30px; }
-        #right-controls { right: 30px; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
         
-        .btn {
-            width: 80px; height: 80px;
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px solid white;
-            border-radius: 50%;
-            color: white; font-weight: bold; font-size: 20px;
-            display: flex; justify-content: center; align-items: center;
-            user-select: none;
+        #speedometer {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7); color: #00e5ff;
+            padding: 15px 40px; border-radius: 15px; font-size: 32px; font-weight: 900; font-style: italic;
+            border: 2px solid #00e5ff; box-shadow: 0 0 15px rgba(0, 229, 255, 0.5); text-shadow: 0 0 10px #00e5ff;
         }
+
+        #status-panel {
+            position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.6);
+            color: #fff; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: 1px solid #555;
+        }
+        #headlight-status { color: #888; font-size: 14px; margin-top: 5px; }
+        #headlight-status.on { color: #f1c40f; text-shadow: 0 0 5px #f1c40f; }
+
+        #btn-settings-open {
+            position: absolute; top: 20px; right: 20px; background: rgba(52, 73, 94, 0.8);
+            color: white; border: 2px solid #fff; padding: 10px 20px; border-radius: 8px;
+            font-size: 16px; font-weight: bold; pointer-events: auto; cursor: pointer;
+        }
+
+        #settings-modal {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(30, 39, 46, 0.95); padding: 30px; border-radius: 15px; border: 2px solid #0fb9b1;
+            color: white; width: 320px; pointer-events: auto; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        .modal-header h2 { margin: 0; color: #0fb9b1; }
+        #btn-main-go { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .setting-group { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .setting-group select { background: #34495e; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; outline: none; }
+        .master-setting { background: rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #f1c40f; }
+        
+        #btn-settings-close { width: 100%; background: #0fb9b1; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        .controls { position: absolute; bottom: 100px; display: flex; gap: 10px; z-index: 10; pointer-events: auto; }
+        #left-controls { left: 20px; }
+        #right-controls { right: 20px; align-items: flex-end; }
+        .m-btn { width: 60px; height: 60px; background: rgba(0,0,0,0.6); border: 2px solid white; border-radius: 50%; color: white; font-weight: bold; font-size: 16px; display: flex; justify-content: center; align-items: center; user-select: none; transition: transform 0.1s; }
+        .m-btn:active { background: rgba(255,255,255,0.9); color: black; transform: scale(0.9); }
+        .btn-wide { width: 70px; border-radius: 20px; }
     </style>
 </head>
 <body>
-    <div id="left-controls" class="controls">
-        <div class="btn" id="btn-a">A</div>
-        <div class="btn" id="btn-d">D</div>
+
+    <div id="ui-layer">
+        <div id="status-panel">
+            <div id="time-display">00:00</div>
+            <div id="headlight-status">헤드라이트 [P]: OFF</div>
+        </div>
+        <button id="btn-settings-open">설정 ⚙️</button>
+        <div id="speedometer">0 km/h</div>
+        
+        <div id="left-controls" class="controls">
+            <div class="m-btn" id="m-left">◀</div>
+            <div class="m-btn" id="m-right">▶</div>
+        </div>
+        <div id="right-controls" class="controls" style="flex-direction: column;">
+            <div class="m-btn btn-wide" id="m-gas" style="background: rgba(46, 204, 113,0.7);">가속</div>
+            <div style="display: flex; gap: 10px;">
+                <div class="m-btn btn-wide" id="m-rev" style="background: rgba(149, 165, 166,0.7);">후진</div>
+                <div class="m-btn btn-wide" id="m-brake" style="background: rgba(231,76,60,0.7);">브레이크</div>
+            </div>
+        </div>
     </div>
-    <div id="right-controls" class="controls">
-        <div class="btn" id="btn-w">W</div>
-        <div class="btn" id="btn-s">S</div>
+
+    <div id="settings-modal">
+        <div class="modal-header">
+            <button id="btn-main-go" onclick="location.href='index.html'">◀ 메인으로</button>
+            <h2>환경 설정</h2>
+        </div>
+        <div class="setting-group master-setting">
+            <label style="color:#f1c40f; font-weight:bold;">마스터 품질</label>
+            <select id="set-master"><option value="2">높음</option><option value="1" selected>보통</option><option value="0">낮음</option></select>
+        </div>
+        <div class="setting-group"><label>풀</label><select id="set-grass"><option value="2">풍성</option><option value="1" selected>보통</option><option value="0">끄기</option></select></div>
+        <div class="setting-group"><label>꽃</label><select id="set-flowers"><option value="2">풍성</option><option value="1" selected>보통</option><option value="0">끄기</option></select></div>
+        <div class="setting-group"><label>나무</label><select id="set-trees"><option value="2">다양/풍성</option><option value="1" selected>보통</option><option value="0">끄기</option></select></div>
+        <div class="setting-group"><label>동물</label><select id="set-animals"><option value="2">많음</option><option value="1" selected>보통</option><option value="0">끄기</option></select></div>
+        <button id="btn-settings-close">적용 및 닫기</button>
     </div>
-    
+
     <script type="module">
         import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
+        // 1. 기본 환경 세팅 (시야 거리 대폭 상향)
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 200, 1500); // 안개가 훨씬 멀리서부터 시작됨
+
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 3000);
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
         document.body.appendChild(renderer.domElement);
 
-        // 1. 바닥(도로)
-        const road = new THREE.Mesh(
-            new THREE.PlaneGeometry(10, 1000), 
-            new THREE.MeshBasicMaterial({ color: 0x444444 })
-        );
-        road.rotation.x = -Math.PI / 2;
-        scene.add(road);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        scene.add(sunLight);
 
-        // 💡 2. 중앙선 추가 (점선 만들기)
-        const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const lineGeometry = new THREE.BoxGeometry(0.2, 0.05, 2); // 폭, 높이, 길이
+        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffea00, fog: false }));
+        scene.add(sunMesh);
+        const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 32), new THREE.MeshBasicMaterial({ color: 0xdddddd, fog: false }));
+        scene.add(moonMesh);
 
-        for (let i = 0; i < 500; i++) {
-            const line = new THREE.Mesh(lineGeometry, lineMaterial);
-            // 20 간격으로 도로 중앙(x=0)에 배치
-            line.position.set(0, 0.05, i * 5 - 250); 
-            scene.add(line);
-        }
+        let gameHour = 12.0; 
+        const timeDisplay = document.getElementById("time-display");
+        
+        const car = new THREE.Group();
+        const carBodyGroup = new THREE.Group();
+        car.add(carBodyGroup);
 
-        // 3. 자동차
-        const car = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 0.5, 2),
-            new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
-        car.position.set(0, 0.25, 0);
+        const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 4), new THREE.MeshLambertMaterial({ color: 0xe74c3c }));
+        bodyMesh.position.y = 0.4;
+        const roofMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.7, 2), new THREE.MeshLambertMaterial({ color: 0xc0392b }));
+        roofMesh.position.set(0, 1.15, -0.5);
+        carBodyGroup.add(bodyMesh, roofMesh);
         scene.add(car);
 
-        camera.position.set(0, 3, -6);
-        camera.lookAt(0, 0, 10);
+        // 💡 헤드라이트 파워 업그레이드! (강도 20, 거리 800)
+        const headLight = new THREE.SpotLight(0xffffff, 20, 800, 0.7, 0.5, 1);
+        headLight.position.set(0, 1, -2);
+        headLight.target.position.set(0, 0, -40);
+        headLight.visible = false;
+        carBodyGroup.add(headLight);
+        carBodyGroup.add(headLight.target);
 
-        const keys = { w: false, a: false, s: false, d: false };
-        window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-        window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+        // 💡 2. 해와 달의 스카이돔 시스템 (시야를 따라가되 위치는 고정)
+        function updateTime(deltaTime) {
+            gameHour += (deltaTime / 60.0);
+            if(gameHour >= 24.0) gameHour -= 24.0;
 
-        function animate() {
-            requestAnimationFrame(animate);
+            let h = Math.floor(gameHour);
+            let m = Math.floor((gameHour - h) * 60);
+            timeDisplay.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 
-            const moveSpeed = 0.2;
-            if (keys.w) car.position.z += moveSpeed;
-            if (keys.s) car.position.z -= moveSpeed;
-            if (keys.a) car.position.x += moveSpeed;
-            if (keys.d) car.position.x -= moveSpeed;
-
-            camera.position.x = car.position.x;
-            camera.position.z = car.position.z - 6;
+            // 시간(0~24)에 따라 0 ~ 2PI 각도 계산
+            let sunAngle = (gameHour / 24.0) * Math.PI * 2 - Math.PI/2;
             
+            // 해가 좌측(동쪽)에서 떠서 우측(서쪽)으로 지도록 설정
+            let orbitX = Math.cos(sunAngle) * 2000;
+            let orbitY = Math.sin(sunAngle) * 2000; 
+            
+            // 차의 Z위치에서 항상 2500m 앞쪽 하늘에 떠있게 만듦
+            sunMesh.position.set(car.position.x + orbitX, Math.max(-200, orbitY), car.position.z - 2500);
+            moonMesh.position.set(car.position.x - orbitX, Math.max(-200, -orbitY), car.position.z - 2500);
+            
+            sunLight.position.copy(sunMesh.position);
+            
+            let isDay = gameHour > 6 && gameHour < 18;
+            sunLight.intensity = isDay ? Math.max(0, Math.sin(sunAngle)) * 1.5 : 0.1; 
+
+            let skyColor = new THREE.Color();
+            if(gameHour >= 5 && gameHour < 7) skyColor.setHex(0xff7e5f); 
+            else if(gameHour >= 7 && gameHour < 17) skyColor.setHex(0x87CEEB); 
+            else if(gameHour >= 17 && gameHour < 19) skyColor.setHex(0xfd5e53); 
+            else skyColor.setHex(0x050510); 
+
+            scene.background.lerp(skyColor, 0.05);
+            scene.fog.color.lerp(skyColor, 0.05);
+
+            if(fireflies) fireflies.visible = !isDay;
+        }
+
+        let speedMS = 0; 
+        const maxSpeedMS = 500 / 3.6; 
+        const accel = 5.55;           
+        const rollingResistance = 1.5; 
+        function getBrakePower(currentSpeed) { return 6.0 + (currentSpeed * 0.4); }
+
+        // 💡 3. 도로 길이 확장 및 번쩍임(착시) 방지용 텍스처 재설계
+        const curvePoints = [];
+        let curX = 0, curZ = 0;
+        // 도로를 1.5배 더 길게 생성하여 렉이나 끝나는 현상 방지
+        for(let i = 0; i < 1500; i++) {
+            curvePoints.push(new THREE.Vector3(curX, 0, curZ));
+            curZ -= 50; 
+            curX += Math.sin(i * 0.25) * 60 + Math.sin(i * 0.1) * 150; 
+        }
+        const roadCurve = new THREE.CatmullRomCurve3(curvePoints);
+
+        const texCanvas = document.createElement('canvas');
+        texCanvas.width = 512; texCanvas.height = 2048; // 엄청 길게 만듦
+        const ctx = texCanvas.getContext('2d');
+        ctx.fillStyle = '#222'; ctx.fillRect(0,0,512,2048); 
+        ctx.fillStyle = '#fff'; 
+        ctx.fillRect(240, 0, 32, 1024); // 절반은 선, 절반은 빈 공간 (마차 바퀴 착시 완벽 차단)
+        
+        const roadTex = new THREE.CanvasTexture(texCanvas);
+        roadTex.wrapS = THREE.RepeatWrapping; roadTex.wrapT = THREE.RepeatWrapping;
+        roadTex.repeat.set(1, 800); 
+        
+        // 그래픽 카드 안티앨리어싱 풀가동
+        roadTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        roadTex.magFilter = THREE.LinearFilter;
+        roadTex.minFilter = THREE.LinearMipmapLinearFilter;
+
+        const pts = roadCurve.getSpacedPoints(10000);
+        const vertices = [], uvs = [], indices = [];
+        const upVec = new THREE.Vector3(0, 1, 0);
+
+        for(let i=0; i<pts.length; i++) {
+            let p = pts[i];
+            let tangent = roadCurve.getTangent(i / pts.length);
+            let right = new THREE.Vector3().crossVectors(tangent, upVec).normalize(); 
+            let pLeft = p.clone().addScaledVector(right, -8); 
+            let pRight = p.clone().addScaledVector(right, 8);
+            
+            // 도로 높이를 0.2로 미세하게 높여 바닥과 겹침(Z-fighting) 방지
+            vertices.push(pLeft.x, 0.2, pLeft.z, pRight.x, 0.2, pRight.z);
+            uvs.push(0, (i / pts.length) * 800, 1, (i / pts.length) * 800); 
+        }
+        for(let i=0; i<pts.length-1; i++) {
+            let a = i*2, b = i*2+1, c = i*2+2, d = i*2+3;
+            indices.push(a, b, c, b, d, c);
+        }
+
+        const roadGeo = new THREE.BufferGeometry();
+        roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        roadGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        roadGeo.setIndex(indices);
+        roadGeo.computeVertexNormals();
+        scene.add(new THREE.Mesh(roadGeo, new THREE.MeshLambertMaterial({ map: roadTex })));
+
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(200000, 200000), new THREE.MeshLambertMaterial({ color: 0x2b4216 }));
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        let sysSettings = { grass: 1, flowers: 1, trees: 1, animals: 1 };
+
+        function createInstanced(geometry, material, maxCount) {
+            const mesh = new THREE.InstancedMesh(geometry, material, maxCount);
+            mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            scene.add(mesh);
+            return mesh;
+        }
+
+        const matLeaf1 = new THREE.MeshLambertMaterial({ color: 0x2e8b57 }); 
+        const matLeaf2 = new THREE.MeshLambertMaterial({ color: 0x1c3b2b }); 
+        const matTrunk = new THREE.MeshLambertMaterial({ color: 0x4a2e00 });
+        const matGrass = new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide });
+        const matRose = new THREE.MeshLambertMaterial({ color: 0xff0055 });
+        const matSunFlower = new THREE.MeshLambertMaterial({ color: 0xffd700 });
+        const matPig = new THREE.MeshLambertMaterial({ color: 0xffb6c1 });
+        const matCow = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+        const instTrees1 = createInstanced(new THREE.ConeGeometry(4, 12, 6), matLeaf1, 1000);
+        const instTrees2 = createInstanced(new THREE.ConeGeometry(3, 15, 5), matLeaf2, 800);
+        const instTrunks = createInstanced(new THREE.CylinderGeometry(0.6, 0.6, 4), matTrunk, 1800);
+        const instGrass = createInstanced(new THREE.PlaneGeometry(0.8, 2.0), matGrass, 5000);
+        const instRoses = createInstanced(new THREE.BoxGeometry(0.6, 0.6, 0.6), matRose, 500);
+        const instSuns = createInstanced(new THREE.BoxGeometry(1.0, 1.0, 0.2), matSunFlower, 500);
+        const instPigs = createInstanced(new THREE.BoxGeometry(1.8, 1.2, 2.5), matPig, 150);
+        const instCows = createInstanced(new THREE.BoxGeometry(2.5, 1.8, 3.5), matCow, 150);
+
+        const dummy = new THREE.Object3D();
+        
+        function initFloraFauna() {
+            function spawn(instMesh, count, yOffset, rangeMin, rangeMax, scaleMod = 1) {
+                for(let i=0; i<count; i++) {
+                    let t = Math.random();
+                    let pos = roadCurve.getPointAt(t);
+                    let tangent = roadCurve.getTangentAt(t);
+                    let right = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
+                    let side = Math.random() > 0.5 ? 1 : -1;
+                    let dist = rangeMin + Math.random() * (rangeMax - rangeMin); 
+                    
+                    dummy.position.copy(pos).addScaledVector(right, side * dist);
+                    dummy.position.y = yOffset;
+                    dummy.rotation.y = Math.random() * Math.PI;
+                    dummy.scale.setScalar(0.8 + Math.random()*scaleMod);
+                    dummy.updateMatrix();
+                    instMesh.setMatrixAt(i, dummy.matrix);
+                }
+                instMesh.instanceMatrix.needsUpdate = true;
+            }
+
+            // 💡 나무 침범 완벽 해결: 최소 거리를 18에서 40으로 대폭 증가시켜 갓길을 아주 넓게 뺌
+            spawn(instTrees1, 1000, 6, 40, 150, 0.5);
+            spawn(instTrees2, 800, 7.5, 45, 180, 0.5);
+            
+            for(let i=0; i<1800; i++) {
+                let targetMesh = i < 1000 ? instTrees1 : instTrees2;
+                let targetIndex = i < 1000 ? i : i - 1000;
+                
+                targetMesh.getMatrixAt(targetIndex, dummy.matrix);
+                dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                dummy.position.y = 2.0; 
+                dummy.updateMatrix();
+                instTrunks.setMatrixAt(i, dummy.matrix);
+            }
+            instTrunks.instanceMatrix.needsUpdate = true;
+
+            spawn(instGrass, 5000, 1.0, 12, 100, 0.5);
+            spawn(instRoses, 500, 0.3, 15, 80, 0.2);
+            spawn(instSuns, 500, 0.5, 15, 80, 0.2);
+            spawn(instPigs, 150, 0.6, 25, 70, 0.2);
+            spawn(instCows, 150, 0.9, 30, 80, 0.2);
+        }
+        initFloraFauna();
+
+        function applySettings() {
+            instGrass.count = sysSettings.grass === 2 ? 5000 : (sysSettings.grass === 1 ? 2000 : 0);
+            instRoses.count = sysSettings.flowers === 2 ? 500 : (sysSettings.flowers === 1 ? 200 : 0);
+            instSuns.count = sysSettings.flowers === 2 ? 500 : (sysSettings.flowers === 1 ? 200 : 0);
+            instTrees1.count = sysSettings.trees === 2 ? 1000 : (sysSettings.trees === 1 ? 400 : 0);
+            instTrees2.count = sysSettings.trees === 2 ? 800 : (sysSettings.trees === 1 ? 0 : 0);
+            instTrunks.count = instTrees1.count + instTrees2.count;
+            instPigs.count = sysSettings.animals === 2 ? 150 : (sysSettings.animals === 1 ? 50 : 0);
+            instCows.count = sysSettings.animals === 2 ? 150 : (sysSettings.animals === 1 ? 50 : 0);
+        }
+
+        const fireflyGeo = new THREE.BufferGeometry();
+        const fireflyVerts = [];
+        for(let i=0; i<400; i++) fireflyVerts.push(Math.random()*200-100, Math.random()*5, Math.random()*200-100);
+        fireflyGeo.setAttribute('position', new THREE.Float32BufferAttribute(fireflyVerts, 3));
+        const fireflies = new THREE.Points(fireflyGeo, new THREE.PointsMaterial({ color: 0xccff00, size: 0.8 }));
+        scene.add(fireflies);
+
+        const keys = { w: false, a: false, s: false, d: false, space: false, p: false };
+        let isHeadlightOn = false;
+        const hlStatus = document.getElementById("headlight-status");
+
+        window.addEventListener('keydown', (e) => {
+            let k = e.key.toLowerCase();
+            if(k === 'w' || k === 'arrowup') keys.w = true;
+            if(k === 's' || k === 'arrowdown') keys.s = true;
+            if(k === 'a' || k === 'arrowleft') keys.a = true;
+            if(k === 'd' || k === 'arrowright') keys.d = true;
+            if(e.code === 'Space') keys.space = true;
+            if(k === 'p' && !keys.p) {
+                keys.p = true; 
+                isHeadlightOn = !isHeadlightOn;
+                headLight.visible = isHeadlightOn;
+                hlStatus.innerText = `헤드라이트 [P]: ${isHeadlightOn ? 'ON' : 'OFF'}`;
+                hlStatus.className = isHeadlightOn ? 'on' : '';
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            let k = e.key.toLowerCase();
+            if(k === 'w' || k === 'arrowup') keys.w = false;
+            if(k === 's' || k === 'arrowdown') keys.s = false;
+            if(k === 'a' || k === 'arrowleft') keys.a = false;
+            if(k === 'd' || k === 'arrowright') keys.d = false;
+            if(e.code === 'Space') keys.space = false;
+            if(k === 'p') keys.p = false;
+        });
+
+        function bindM(id, key) {
+            let el = document.getElementById(id);
+            if(!el) return;
+            el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); keys[key] = true; });
+            el.addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); keys[key] = false; });
+            el.addEventListener('pointercancel', e => { e.preventDefault(); keys[key] = false; });
+            el.addEventListener('pointerleave', e => { e.preventDefault(); keys[key] = false; });
+        }
+        bindM('m-gas', 'w'); bindM('m-rev', 's'); bindM('m-brake', 'space'); bindM('m-left', 'a'); bindM('m-right', 'd');
+
+        const modal = document.getElementById("settings-modal");
+        document.getElementById("btn-settings-open").onclick = () => modal.style.display = "block";
+        document.getElementById("btn-settings-close").onclick = () => { modal.style.display = "none"; applySettings(); };
+        
+        document.getElementById("set-master").addEventListener("change", (e) => {
+            let val = e.target.value;
+            ['grass','flowers','trees','animals'].forEach(id => {
+                document.getElementById(`set-${id}`).value = val;
+                sysSettings[id] = parseInt(val);
+            });
+        });
+        ['grass','flowers','trees','animals'].forEach(id => {
+            document.getElementById(`set-${id}`).addEventListener("change", e => sysSettings[id] = parseInt(e.target.value));
+        });
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // 슈퍼카 속도에 맞춰 물체 재활용(리사이클) 반경을 1500m로 대폭 상향
+        function recycle(instMesh, count) {
+            if(count <= 0) return;
+            let needsUpdate = false;
+            for(let i = 0; i < count; i++) {
+                instMesh.getMatrixAt(i, dummy.matrix);
+                dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                
+                if (dummy.position.z > car.position.z + 200) {
+                    dummy.position.z -= 1500; 
+                    dummy.updateMatrix();
+                    instMesh.setMatrixAt(i, dummy.matrix);
+                    needsUpdate = true;
+                }
+                else if (dummy.position.z < car.position.z - 1400) {
+                    dummy.position.z += 1500; 
+                    dummy.updateMatrix();
+                    instMesh.setMatrixAt(i, dummy.matrix);
+                    needsUpdate = true;
+                }
+            }
+            if(needsUpdate) instMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        const speedometer = document.getElementById("speedometer");
+        const camTarget = new THREE.Vector3();
+        let lastTime = 0;
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            if(!lastTime) lastTime = time;
+            let dt = (time - lastTime) / 1000;
+            lastTime = time;
+            
+            if(isNaN(dt) || dt > 0.1) dt = 0.1; 
+
+            updateTime(dt);
+
+            // 💡 W(가속)와 S(후진) 로직 (스페이스바 안누를때만 작동)
+            if (keys.w && !keys.space) speedMS += accel * dt;
+            else if (keys.s && !keys.space) speedMS -= accel * dt;
+            
+            // 💡 스페이스바(브레이크) 로직
+            if (keys.space) {
+                let brk = getBrakePower(Math.abs(speedMS));
+                if (speedMS > 0) speedMS -= brk * dt;
+                if (speedMS < 0) speedMS += brk * dt;
+                if (Math.abs(speedMS) < brk * dt) speedMS = 0;
+            } else if (!keys.w && !keys.s) {
+                if (speedMS > 0) speedMS -= rollingResistance * dt;
+                if (speedMS < 0) speedMS += rollingResistance * dt;
+                if (Math.abs(speedMS) < rollingResistance * dt) speedMS = 0;
+            }
+
+            if (speedMS > maxSpeedMS) speedMS = maxSpeedMS;
+            // 후진 속도 제한 (약 100km/h 까지만)
+            if (speedMS < -30) speedMS = -30; 
+
+            let currentKmh = Math.floor(Math.abs(speedMS) * 3.6);
+            speedometer.innerText = `${currentKmh} km/h`;
+
+            let turnAmount = 0;
+            let visualDriftAngle = 0;
+
+            if (Math.abs(speedMS) > 1.0) {
+                let dir = speedMS > 0 ? 1 : -1;
+                let baseTurn = 1.2 * dt; 
+                let handlingPower = baseTurn / (1 + (Math.abs(speedMS) / 30)); 
+
+                if (keys.space && Math.abs(speedMS) > 15) { 
+                    handlingPower *= 2.5; 
+                    if (keys.a) visualDriftAngle = 0.7; 
+                    if (keys.d) visualDriftAngle = -0.7;
+                }
+
+                if (keys.a) turnAmount = handlingPower * dir;
+                if (keys.d) turnAmount = -handlingPower * dir;
+            }
+
+            car.rotation.y += turnAmount; 
+            car.translateZ(-speedMS * dt);
+
+            carBodyGroup.rotation.y = THREE.MathUtils.lerp(carBodyGroup.rotation.y, visualDriftAngle, 5 * dt);
+            carBodyGroup.rotation.z = THREE.MathUtils.lerp(carBodyGroup.rotation.z, turnAmount * (keys.space ? 30 : 60), 5 * dt);
+
+            car.updateMatrixWorld(); 
+            const idealOffset = new THREE.Vector3(0, 5, 15);
+            idealOffset.applyMatrix4(car.matrixWorld);
+            camera.position.lerp(idealOffset, 5 * dt); 
+
+            const idealLookAt = new THREE.Vector3(0, 1, -20);
+            idealLookAt.applyMatrix4(car.matrixWorld);
+            camTarget.lerp(idealLookAt, 5 * dt);
+            camera.lookAt(camTarget);
+
+            let speedRatio = Math.abs(speedMS) / maxSpeedMS;
+            camera.fov = THREE.MathUtils.lerp(camera.fov, 65 + (speedRatio * 20), 0.1);
+            camera.updateProjectionMatrix();
+
+            if(fireflies && fireflies.visible) {
+                fireflies.position.copy(car.position); 
+                fireflies.rotation.y += 0.2 * dt;
+            }
+
+            recycle(instGrass, instGrass.count);
+            recycle(instRoses, instRoses.count);
+            recycle(instSuns, instSuns.count);
+            recycle(instTrees1, instTrees1.count);
+            recycle(instTrees2, instTrees2.count);
+            recycle(instTrunks, instTrunks.count); 
+            recycle(instPigs, instPigs.count);
+            recycle(instCows, instCows.count);
+
             renderer.render(scene, camera);
         }
-        animate();
+        
+        applySettings();
+        requestAnimationFrame(animate);
     </script>
 </body>
 </html>
