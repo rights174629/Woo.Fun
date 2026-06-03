@@ -5,21 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>똥피하기 (초고속 & 렌더링 최적화)</title>
     <style>
-        body {
+        /* 💡 모바일 브라우저 주소창 버그 해결을 위해 100dvh 적용 */
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100vh; 
+            height: 100dvh; /* 실제 모바일 가시 영역 높이 */
             background-color: #1e272e;
             color: #d2dae2;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
             overflow: hidden;
             touch-action: none;
         }
 
-        /* 💡 통일된 상단 헤더 */
         header {
             display: flex;
             align-items: center;
@@ -68,26 +70,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: center; /* 세로 중앙 정렬 */
             background-color: #2c3e50;
-            padding: 15px;
             box-sizing: border-box;
+            overflow: hidden; /* 화면 밖으로 밀림 방지 */
         }
 
-        #game-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        /* 💡 핵심: 캔버스 크기를 화면에 꽉 차게 계산해주는 새로운 레이아웃 래퍼 */
         .game-layout {
             width: 100%;
-            /* 브라우저 너비 100%, 최대 800px, 모니터 세로 높이(75vh)에 맞춘 3:4 비율 중 가장 최적화된 크기 자동 적용 */
-            max-width: min(100%, 800px, calc(75vh * 3 / 4));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -95,11 +85,12 @@
 
         #score-board {
             width: 100%;
+            max-width: 500px; /* 점수판 너비 제한 */
             display: flex;
             justify-content: space-between;
-            padding: 0 5px 10px 5px;
+            padding: 0 10px 10px 10px;
             box-sizing: border-box;
-            font-size: 22px; 
+            font-size: 20px; 
             font-weight: bold;
             color: #fff;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
@@ -109,13 +100,13 @@
             color: #f1c40f;
         }
 
-        /* 💡 캔버스와 오버레이(게임오버 창)의 크기를 완벽하게 일치시켜주는 래퍼 */
+        /* 💡 캔버스 컨테이너 (JS에서 크기를 직접 계산해서 주입) */
         #canvas-wrapper {
             position: relative;
-            width: 100%;
-            aspect-ratio: 3 / 4;
+            /* 너비와 높이는 자바스크립트가 동적으로 계산합니다! */
         }
 
+        /* 💡 실제 캔버스는 부모(wrapper)에 무조건 100% 맞춰지도록 설정 */
         canvas {
             width: 100%;
             height: 100%;
@@ -131,12 +122,12 @@
         #mobile-controls {
             display: flex;
             width: 100%;
+            max-width: 500px; /* 버튼 패드 최대 너비 */
             gap: 12px;
-            margin-top: 15px;
+            padding: 15px 15px 0 15px;
             box-sizing: border-box;
         }
 
-        /* PC에서는 모바일용 방향 패드 숨김 처리 */
         @media (min-width: 768px) {
             #mobile-controls { display: none !important; }
         }
@@ -163,7 +154,6 @@
             background-color: #e67e22; 
         }
 
-        /* 💡 캔버스 영역 안에서만 완벽하게 뜨도록 수정된 오버레이 */
         .overlay-screen {
             position: absolute;
             top: 0;
@@ -230,38 +220,36 @@
     </header>
 
     <div id="game-wrapper">
-        <div id="game-container">
+        <div class="game-layout">
+            <div id="score-board">
+                <span>최고: <span id="high-score" style="color: #2ecc71;">0</span></span>
+                <span id="time-display">⏱ 00:00</span>
+                <span>점수: <span id="score" style="color: #ff9f43;">0</span></span>
+            </div>
             
-            <div class="game-layout">
-                <div id="score-board">
-                    <span>최고: <span id="high-score" style="color: #2ecc71;">0</span></span>
-                    <span id="time-display">⏱ 00:00</span>
-                    <span>점수: <span id="score" style="color: #ff9f43;">0</span></span>
-                </div>
+            <!-- 💡 캔버스를 감싸는 래퍼 -->
+            <div id="canvas-wrapper">
+                <!-- 내부 해상도는 900x1200 유지 (게임 물리엔진 보호) -->
+                <canvas id="gameCanvas" width="900" height="1200"></canvas>
                 
-                <div id="canvas-wrapper">
-                    <canvas id="gameCanvas" width="900" height="1200"></canvas>
-                    
-                    <div id="start-screen" class="overlay-screen">
-                        <h2>똥피하기</h2>
-                        <p style="margin-bottom: 10px; font-size: 18px; line-height: 1.5;">방향키(◀ ▶) 또는 A/D 키로 움직이세요!</p>
-                        <p style="margin-bottom: 25px; font-size: 15px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
-                        <button class="btn" onclick="startGame()">게임 시작</button>
-                    </div>
-
-                    <div id="game-over-screen" class="overlay-screen" style="display: none;">
-                        <h2 style="color: #ff6b6b;">GAME OVER</h2>
-                        <div id="game-over-stats"></div>
-                        <button class="btn" onclick="startGame()">다시 도전</button>
-                    </div>
+                <div id="start-screen" class="overlay-screen">
+                    <h2>똥피하기</h2>
+                    <p style="margin-bottom: 10px; font-size: 18px; line-height: 1.5;">방향키(◀ ▶) 또는 A/D 키로 움직이세요!</p>
+                    <p style="margin-bottom: 25px; font-size: 15px; color:#bdc3c7;">우산을 먹으면 6초 동안 무적이 됩니다☂️</p>
+                    <button class="btn" onclick="startGame()">게임 시작</button>
                 </div>
 
-                <div id="mobile-controls">
-                    <div id="btn-left" class="control-btn">◀ 좌측</div>
-                    <div id="btn-right" class="control-btn">우측 ▶</div>
+                <div id="game-over-screen" class="overlay-screen" style="display: none;">
+                    <h2 style="color: #ff6b6b;">GAME OVER</h2>
+                    <div id="game-over-stats"></div>
+                    <button class="btn" onclick="startGame()">다시 도전</button>
                 </div>
             </div>
 
+            <div id="mobile-controls">
+                <div id="btn-left" class="control-btn">◀ 좌측</div>
+                <div id="btn-right" class="control-btn">우측 ▶</div>
+            </div>
         </div>
     </div>
 
@@ -286,6 +274,42 @@
         
         const poopImg = new Image(); poopImg.src = 'Poo.png';
         const umbImg = new Image(); umbImg.src = 'Umbrella.png';
+
+        // 💡 핵심: 화면 꽉 차게 동적 스케일링 해주는 함수
+        function resizeCanvasLayout() {
+            const header = document.querySelector("header");
+            const scoreBoard = document.getElementById("score-board");
+            const mobileControls = document.getElementById("mobile-controls");
+            const canvasWrapper = document.getElementById("canvas-wrapper");
+            
+            // 모바일 컨트롤 패드가 화면에 렌더링 중인지(PC인지 모바일인지) 확인하여 높이 계산
+            const isMobileControlsVisible = window.innerWidth < 768;
+            const controlsHeight = isMobileControlsVisible ? mobileControls.offsetHeight : 0;
+            
+            // 화면 여백(위아래 패딩 등 약 40px)을 제외한 실제 사용 가능한 최대 세로 높이
+            let availableHeight = window.innerHeight - header.offsetHeight - scoreBoard.offsetHeight - controlsHeight - 40;
+            let availableWidth = window.innerWidth - 30; // 양옆 여백
+
+            // 3:4 비율을 맞추기 위한 최대 너비 계산
+            let targetWidth = availableHeight * (3 / 4);
+
+            // 높이 기준으로 맞춘 너비가 실제 화면 너비보다 넓다면, 너비 기준으로 다시 맞춤
+            if (targetWidth > availableWidth) {
+                targetWidth = availableWidth;
+            }
+
+            // PC 화면에서 너무 비정상적으로 커지는 것 방지
+            if (targetWidth > 550) targetWidth = 550;
+            
+            // 계산된 완벽한 비율의 크기를 래퍼에 주입 (내부 캔버스는 100%로 따라감)
+            canvasWrapper.style.width = targetWidth + 'px';
+            canvasWrapper.style.height = (targetWidth * (4 / 3)) + 'px';
+        }
+
+        // 창 크기가 바뀔 때(모바일에서 주소창 나타남/사라짐 포함)마다 크기 재조정
+        window.addEventListener('resize', resizeCanvasLayout);
+        // 초기 로드 시 한 번 실행
+        resizeCanvasLayout();
 
         let animationId;
         let isPlaying = false;
@@ -710,6 +734,9 @@
             
             gameOverScreen.style.display = "flex";
         }
+
+        // 창 크기 변경 시 레이아웃 다시 잡기
+        window.addEventListener('resize', resizeCanvasLayout);
 
         player.draw();
     </script>
