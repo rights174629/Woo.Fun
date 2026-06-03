@@ -305,7 +305,7 @@
 
     </div>
 
-    <div class="game-grid">
+<div class="game-grid">
         
         <div class="game-card">
             <div class="card-header">
@@ -315,26 +315,40 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
-            <p class="card-desc">세계를 질주해보세요!</p>
+            <p class="card-desc">웹 브라우저 한계 돌파! 200km/h의 속도감을 느껴보세요.</p>
             <a href="drive.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
                 <div class="details-section">
                     <h4>📜 게임 방식</h4>
                     <ul>
-                        <li>세계를 질주하며 다양한 도로를 경험하세요.</li>
-                        <li>다양한 차량과 트랙을 선택하여 게임을 즐기세요!</li>
+                        <li>무한으로 펼쳐지는 3D 블록 도로를 질주하세요.</li>
+                        <li>도로를 벗어나도 걱정 마세요, 즉시 복귀할 수 있습니다!</li>
                     </ul>
                 </div>
                 <div class="details-section">
                     <h4>⌨️ 조작법</h4>
                     <ul>
-                        <li><b>PC:</b> 방향키(상하좌우) 또는 W, A, S, D</li>
-                        <li><b>모바일:</b> 화면 하단의 방향 버튼 터치</li>
+                        <li><b>W / S :</b> 가속 / 후진</li>
+                        <li><b>A / D :</b> 좌 / 우 핸들링</li>
+                        <li><b>Space :</b> 브레이크</li>
+                        <li><b>R :</b> 도로 중앙으로 즉시 복귀</li>
+                        <li><b>P :</b> 헤드라이트 ON/OFF</li>
                     </ul>
                 </div>
             </div>
         </div>
+        
+    </div> <script>
+        function toggleDetails(button) {
+            button.classList.toggle('open');
+            const card = button.closest('.game-card');
+            const details = card.querySelector('.card-details');
+            details.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
 
     <script>
         function toggleDetails(button) {
