@@ -57,7 +57,7 @@
     <div id="ui-layer">
         <div id="status-panel">
             <div id="time-display">00:00</div>
-            <div id="headlight-status">헤드라이트 [P]: OFF</div>
+            <div id="headlight-status">헤드라이트 [P]: OFF<br>도로 복귀 [R]</div>
         </div>
         <button id="btn-settings-open">설정 ⚙️</button>
         <div id="speedometer">0 km/h</div>
@@ -67,8 +67,11 @@
             <div class="m-btn" id="m-right">▶</div>
         </div>
         <div id="right-controls" class="controls" style="flex-direction: column;">
-            <div class="m-btn btn-wide" id="m-gas" style="background: rgba(46, 204, 113,0.7);">가속</div>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div class="m-btn btn-wide" id="m-reset" style="background: rgba(155, 89, 182, 0.7);">복귀</div>
+                <div class="m-btn btn-wide" id="m-gas" style="background: rgba(46, 204, 113,0.7);">가속</div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <div class="m-btn btn-wide" id="m-rev" style="background: rgba(149, 165, 166,0.7);">후진</div>
                 <div class="m-btn btn-wide" id="m-brake" style="background: rgba(231,76,60,0.7);">브레이크</div>
             </div>
@@ -173,23 +176,19 @@
         const rollingResistance = 1.5; 
         function getBrakePower(currentSpeed) { return 6.0 + (currentSpeed * 0.4); }
 
-        // 💡 1. 랜덤 도로 생성 시스템 탑재
         const curvePoints = [];
         let curX = 0, curZ = 0;
         
-        // 코너링의 강도를 매 접속 시마다 랜덤하게 설정!
-        let turnIntensity1 = 150 + Math.random() * 150; // 150 ~ 300 사이의 랜덤 강도
-        let turnIntensity2 = 60 + Math.random() * 60;  // 60 ~ 120 사이의 랜덤 강도
+        let turnIntensity1 = 150 + Math.random() * 150; 
+        let turnIntensity2 = 60 + Math.random() * 60;  
 
         for(let i = 0; i < 1500; i++) {
             curvePoints.push(new THREE.Vector3(curX, 0, curZ));
             curZ -= 50; 
-            // 💡 코너의 급격도를 결정하는 값들을 랜덤하게 만듦
             curX += Math.sin(i * 0.2) * turnIntensity2 + Math.sin(i * 0.08) * turnIntensity1;
         }
         const roadCurve = new THREE.CatmullRomCurve3(curvePoints);
 
-        // 💡 2. 초고속 주행에 맞춘 텍스처 재설계 (Z-fighting 방지 및 에일리어싱 차단)
         const pts = roadCurve.getSpacedPoints(10000);
         const vertices = [], uvs = [], indices = [];
         const upVec = new THREE.Vector3(0, 1, 0);
@@ -201,9 +200,7 @@
             let pLeft = p.clone().addScaledVector(right, -8); 
             let pRight = p.clone().addScaledVector(right, 8);
             
-            // 💡 도로 메쉬 높이를 0.2로 설정 (Z-fighting 완벽 방지)
             vertices.push(pLeft.x, 0.2, pLeft.z, pRight.x, 0.2, pRight.z);
-            // 흐릿함 차단을 위해 repeat 촘촘함을 1/4로 줄임
             uvs.push(0, (i / pts.length) * 200, 1, (i / pts.length) * 200); 
         }
         for(let i=0; i<pts.length-1; i++) {
@@ -217,7 +214,6 @@
         roadGeo.setIndex(indices);
         roadGeo.computeVertexNormals();
 
-        // 번쩍임 차단을 위한 리설계된 텍스처 (회색 바탕에 아주 긴 흰색 선 한 줄)
         const texCanvas = document.createElement('canvas');
         texCanvas.width = 512; texCanvas.height = 1024;
         const ctx = texCanvas.getContext('2d');
@@ -227,9 +223,8 @@
         
         const roadTex = new THREE.CanvasTexture(texCanvas);
         roadTex.wrapS = THREE.RepeatWrapping; roadTex.wrapT = THREE.RepeatWrapping;
-        roadTex.repeat.set(1, 200); //repeat 대폭 감소
+        roadTex.repeat.set(1, 200); 
         
-        // 그래픽 안티앨리어싱 풀가동 (모바일 한계에 도전)
         roadTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
         roadTex.magFilter = THREE.LinearFilter;
         roadTex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -289,7 +284,6 @@
                 instMesh.instanceMatrix.needsUpdate = true;
             }
 
-            // 나무 침범 완벽 해결: 최소 거리를 18에서 40으로 대폭 증가시켜 갓길을 아주 넓게 뺌
             spawn(instTrees1, 1000, 6, 40, 150, 0.5);
             spawn(instTrees2, 800, 7.5, 45, 180, 0.5);
             
@@ -331,7 +325,8 @@
         const fireflies = new THREE.Points(fireflyGeo, new THREE.PointsMaterial({ color: 0xccff00, size: 0.8 }));
         scene.add(fireflies);
 
-        const keys = { w: false, a: false, s: false, d: false, space: false, p: false };
+        // 💡 r 키(복귀) 추가
+        const keys = { w: false, a: false, s: false, d: false, space: false, p: false, r: false };
         let isHeadlightOn = false;
         const hlStatus = document.getElementById("headlight-status");
 
@@ -341,12 +336,13 @@
             if(k === 's' || k === 'arrowdown') keys.s = true;
             if(k === 'a' || k === 'arrowleft') keys.a = true;
             if(k === 'd' || k === 'arrowright') keys.d = true;
+            if(k === 'r') keys.r = true; // 복귀 키 등록
             if(e.code === 'Space') keys.space = true;
             if(k === 'p' && !keys.p) {
                 keys.p = true; 
                 isHeadlightOn = !isHeadlightOn;
                 headLight.visible = isHeadlightOn;
-                hlStatus.innerText = `헤드라이트 [P]: ${isHeadlightOn ? 'ON' : 'OFF'}`;
+                hlStatus.innerHTML = `헤드라이트 [P]: ${isHeadlightOn ? 'ON' : 'OFF'}<br>도로 복귀 [R]`;
                 hlStatus.className = isHeadlightOn ? 'on' : '';
             }
         });
@@ -356,6 +352,7 @@
             if(k === 's' || k === 'arrowdown') keys.s = false;
             if(k === 'a' || k === 'arrowleft') keys.a = false;
             if(k === 'd' || k === 'arrowright') keys.d = false;
+            if(k === 'r') keys.r = false;
             if(e.code === 'Space') keys.space = false;
             if(k === 'p') keys.p = false;
         });
@@ -369,6 +366,7 @@
             el.addEventListener('pointerleave', e => { e.preventDefault(); keys[key] = false; });
         }
         bindM('m-gas', 'w'); bindM('m-rev', 's'); bindM('m-brake', 'space'); bindM('m-left', 'a'); bindM('m-right', 'd');
+        bindM('m-reset', 'r'); // 모바일 복귀 버튼 바인딩
 
         const modal = document.getElementById("settings-modal");
         document.getElementById("btn-settings-open").onclick = () => modal.style.display = "block";
@@ -391,7 +389,6 @@
             camera.updateProjectionMatrix();
         });
 
-        // 💡 3. 슈퍼카 속도에 맞춰 물체 재활용(리사이클) 반경을 1500m로 대폭 상향
         function recycle(instMesh, count) {
             if(count <= 0) return;
             let needsUpdate = false;
@@ -428,6 +425,27 @@
             if(isNaN(dt) || dt > 0.1) dt = 0.1; 
 
             updateTime(dt);
+
+            // 💡 도로 복귀 로직 (R키 또는 모바일 복귀 버튼 입력 시)
+            if (keys.r) {
+                let zAbs = Math.abs(car.position.z);
+                let idx = zAbs / 50; // 이 버전은 curZ가 50씩 감소
+                let idxFloor = Math.floor(idx);
+                if(idxFloor < curvePoints.length - 1) {
+                    let p1 = curvePoints[idxFloor];
+                    let p2 = curvePoints[idxFloor+1];
+                    let fraction = idx - idxFloor;
+                    
+                    car.position.x = p1.x + (p2.x - p1.x) * fraction;
+                    car.position.y = 0; // 차량 그룹 위치는 y=0
+                    
+                    speedMS = 0; // 복귀 시 속도 초기화
+                    
+                    // 길 방향에 맞춰 차 머리 정렬
+                    let dirVec = new THREE.Vector3(p2.x - p1.x, 0, p2.z - p1.z).normalize();
+                    car.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dirVec);
+                }
+            }
 
             if (keys.w && !keys.space) speedMS += accel * dt;
             else if (keys.s && !keys.space) speedMS -= accel * dt;
