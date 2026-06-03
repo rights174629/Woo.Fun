@@ -33,13 +33,6 @@
             font-weight: 900;
         }
 
-        p.subtitle {
-            color: #808e9b;
-            font-size: 16px;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -47,8 +40,6 @@
             width: 90%;
             max-width: 1000px;
             padding-bottom: 60px;
-            
-            /* 💡 핵심 수정 포인트: 카드가 각자의 독립적인 높이를 가지게 설정 */
             align-items: start; 
         }
 
@@ -180,7 +171,6 @@
 
     <header>
         <h1>Woo.Fun</h1>
-        <p class="subtitle">심심할 때 즐기는 가벼운 웹 게임 모음집</p>
     </header>
 
     <div class="game-grid">
@@ -267,7 +257,7 @@
                     <ul>
                         <li><b>점프:</b> 스페이스바, W, ↑, 좌측 화면 터치</li>
                         <li><b>숙이기:</b> Ctrl, S, ↓, 우측 화면 터치</li>
-                        <li><b>💡 팁 (급강하):</b> 공중에 떴을 때 숙이기를 누르면 바닥으로 뚝 떨어지며 재빠르게 피할 수 있습니다!</li>
+                        <li><b>💡 팁 (급강하):</b> 공중에 떴을 때 숙이기를 누르면 바닥으로 뚝 떨어집니다!</li>
                     </ul>
                 </div>
             </div>
@@ -277,7 +267,7 @@
             <div class="card-header">
                 <div class="card-title-group">
                     <span class="card-icon">💩</span>
-                    <h2 class="card-title">똥피하기 대작전</h2>
+                    <h2 class="card-title">똥피하기</h2>
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
@@ -290,7 +280,7 @@
                     <ul>
                         <li>떨어지는 똥을 피하며 오래 버틸수록 똥이 더 자주 내립니다.</li>
                         <li><b>우산(1% 확률):</b> 먹으면 6초간 무적이 되며 똥을 통통 튕겨냅니다.</li>
-                        <li><b>파멸의 일격:</b> 2000점이 넘으면 캐릭터 머리 위로 빨간 경고선이 생긴 후, 엄청난 속도의 똥이 내리꽂힙니다!</li>
+                        <li><b>파멸의 일격:</b> 2000점이 넘으면 캐릭터 머리 위로 엄청난 속도의 똥이 내리꽂힙니다!</li>
                     </ul>
                 </div>
                 <div class="details-section">
@@ -303,10 +293,6 @@
             </div>
         </div>
 
-    </div>
-
-<div class="game-grid">
-        
         <div class="game-card">
             <div class="card-header">
                 <div class="card-title-group">
@@ -315,14 +301,14 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
-            <p class="card-desc">웹 브라우저 한계 돌파! 200km/h의 속도감을 느껴보세요.</p>
+            <p class="card-desc">웹 브라우저 한계 돌파! 200km/h의 정교한 속도감을 느껴보세요.</p>
             <a href="drive.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
                 <div class="details-section">
                     <h4>📜 게임 방식</h4>
                     <ul>
-                        <li>무한으로 펼쳐지는 3D 블록 도로를 질주하세요.</li>
+                        <li>무한으로 펼쳐지는 부드러운 3D 평면 도로를 질주하세요.</li>
                         <li>도로를 벗어나도 걱정 마세요, 즉시 복귀할 수 있습니다!</li>
                     </ul>
                 </div>
@@ -338,17 +324,39 @@
                 </div>
             </div>
         </div>
-        
-    </div> <script>
-        function toggleDetails(button) {
-            button.classList.toggle('open');
-            const card = button.closest('.game-card');
-            const details = card.querySelector('.card-details');
-            details.classList.toggle('open');
-        }
-    </script>
-</body>
-</html>
+
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">📈</span>
+                    <h2 class="card-title">그래프 계산기</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
+            <p class="card-desc">여러 개의 수식을 한눈에 비교하고 분석할 수 있는 그래프 계산기입니다.</p>
+            <a href="graph.html" class="play-btn">계산기 실행 🎮</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 핵심 기능</h4>
+                    <ul>
+                        <li>좌측 수식 창과 우측 그래프 영역으로 나뉘어 있어 직관적으로 사용할 수 있습니다.</li>
+                        <li>수식을 추가하고 실시간으로 타이핑하여 여러 수식을 겹쳐 그릴 수 있습니다.</li>
+                        <li>곱하기(*)를 생략하고 2x, 3sin(x) 처럼 직관적으로 써도 자동 변환됩니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 사용법</h4>
+                    <ul>
+                        <li><b>수식 추가 :</b> ➕ 버튼을 눌러 새 라인을 만들고 수식을 적으세요.</li>
+                        <li><b>범위 조절 :</b> X 최소/최대 값을 변경하면 그래프가 실시간 변경됩니다.</li>
+                        <li><b>수식 삭제 :</b> 칸 우측의 ✕ 버튼을 누르면 해당 그래프가 제거됩니다.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <script>
         function toggleDetails(button) {
