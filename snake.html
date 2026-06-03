@@ -40,15 +40,17 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            height: 100%;
             position: relative;
+            justify-content: center; /* 💡 화면 중앙 정렬 */
         }
 
         #top-bar {
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
             display: flex;
             justify-content: space-between;
-            font-size: 24px; /* 폰트 크기 살짝 증가 */
+            font-size: 24px; 
             font-weight: bold;
             margin-bottom: 15px;
             padding: 0 20px;
@@ -57,7 +59,7 @@
 
         canvas {
             background-color: #34495e;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 25px rgba(0,0,0,0.5); /* 💡 그림자를 살짝 키워 입체감 부여 */
             border-radius: 10px;
         }
 
@@ -130,6 +132,11 @@
             grid-template-rows: 70px 70px;
             gap: 12px;
             justify-content: center;
+        }
+
+        /* 💡 반응형 디스플레이: PC 화면(넓이 768px 이상)에서는 터치패드를 아예 숨김 */
+        @media (min-width: 768px) {
+            #controls { display: none !important; }
         }
 
         .btn-pad {
@@ -249,9 +256,18 @@
         let timerInterval;
         let startTime = 0;
 
+        // 💡 화면 꽉 채우기의 핵심 로직 수정
         function resizeCanvas() {
-            let size = Math.min(window.innerWidth - 20, window.innerHeight - 350); 
-            if (size > 500) size = 500; 
+            let isMobile = window.innerWidth < 768; // 모바일 여부 판별
+            let paddingWidth = 40; // 양옆 여백
+            
+            // PC면 상하단 여백만 조금 남기고, 모바일이면 컨트롤러(방향키) 공간을 위해 여백을 크게 확보
+            let paddingHeight = isMobile ? 300 : 120; 
+
+            // 화면 가로/세로 중 더 작은 쪽에 맞춰서 최대한 캔버스를 키움
+            let size = Math.min(window.innerWidth - paddingWidth, window.innerHeight - paddingHeight); 
+            
+            // 💡 문제의 원인이었던 'if (size > 500) size = 500;' 코드를 완전 삭제했습니다!
             
             gridSize = Math.floor(size / tileCount);
             canvas.width = gridSize * tileCount;
@@ -340,7 +356,6 @@
             }
         }
 
-        // 💡 부드러운 타이밍을 보장하는 requestAnimationFrame 게임 루프
         function gameLoop(currentTime) {
             animationId = requestAnimationFrame(gameLoop);
             
@@ -408,7 +423,6 @@
         function drawSnake() {
             snake.forEach((part, index) => {
                 ctx.fillStyle = index === 0 ? '#2ecc71' : '#27ae60'; 
-                // 💡 뱀 모서리를 아주 살짝 둥글게 표현하여 시각적으로 더 부드러워 보이게 설정
                 ctx.beginPath();
                 ctx.roundRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize, 4);
                 ctx.fill();
@@ -428,7 +442,6 @@
             let eatenFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
 
             if (eatenFoodIndex > -1) {
-                // 💡 사과 1개당 점수 1씩 정확히 증가
                 score += 1;
                 scoreElement.innerHTML = score;
                 foods.splice(eatenFoodIndex, 1);
@@ -455,7 +468,6 @@
 
         function changeDirection(direction) {
             if (directionQueue.length < 3) {
-                // 연속적인 같은 방향 입력 무시 (최적화)
                 if (directionQueue[directionQueue.length - 1] !== direction) {
                     directionQueue.push(direction);
                 }
@@ -478,7 +490,6 @@
             if (keyPressed === DOWN_KEY || keyPressed === S_KEY) { event.preventDefault(); changeDirection('DOWN'); }
         });
 
-        // 💡 딜레이 없는 즉각적인 터치/클릭 반응을 위해 pointerdown 이벤트 사용
         function addTouchControl(id, direction) {
             const btn = document.getElementById(id);
             btn.addEventListener('pointerdown', (e) => { 
