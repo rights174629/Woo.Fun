@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>벽돌 깨기 (속도 8.0 업그레이드)</title>
     <style>
-        body {
+        /* 💡 모바일 화면 잘림 방지를 위해 height: 100dvh 적용 */
+        html, body {
             margin: 0;
             padding: 0;
-            background-color: #1a1a2e; /* 기존 다크블루 톤 유지 */
+            width: 100%;
+            height: 100vh; /* 기본 지원 */
+            height: 100dvh; /* 최신 모바일 브라우저용 동적 높이 지원 */
+            background-color: #1a1a2e; 
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
@@ -16,10 +20,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh; /* 화면 전체 높이 꽉 채우기 */
         }
 
-        /* 💡 다른 게임들과 동일한 상단 헤더 스타일 적용 */
         header {
             display: flex;
             align-items: center;
@@ -62,14 +64,14 @@
             font-weight: 900;
         }
 
-        /* 💡 게임 영역 전체 컨테이너 */
         #game-wrapper {
-            flex-grow: 1; /* 남은 화면 전체 사용 */
+            flex-grow: 1;
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
+            overflow: hidden; /* 영역 밖으로 밀려나는 것 방지 */
         }
 
         #game-header {
@@ -97,15 +99,14 @@
             margin-top: 4px;
         }
 
-        /* 💡 캔버스 컨테이너가 남은 공간을 끝까지 채우도록 설계 */
         #canvas-container {
             position: relative;
             width: 100%;
             max-width: 600px;
-            flex-grow: 1; /* 남은 세로 공간 100% 사용 */
+            flex-grow: 1; 
             display: flex;
             justify-content: center;
-            padding: 0 10px 20px 10px; /* 좌우 하단 여백 */
+            padding: 0 10px 20px 10px; 
             box-sizing: border-box;
         }
 
@@ -115,7 +116,7 @@
             border-radius: 10px;
             border: 2px solid #0f3460;
             touch-action: none; 
-            /* width와 height는 JS에서 동적 계산 */
+            display: block;
         }
 
         .overlay-screen {
@@ -243,12 +244,18 @@
 
         const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
 
-        // 💡 화면 크기에 꽉 맞게 캔버스 사이즈 동적 조절
+        // 💡 핵심 수정: 모바일 브라우저의 실제 가시 영역에 맞춰 캔버스 크기 계산
         function resizeCanvas() {
             const container = document.getElementById("canvas-container");
-            // 부모 컨테이너의 실제 높이와 너비를 가져와서 설정 (패딩 제외)
+            const headerObj = document.querySelector("header");
+            const gameHeaderObj = document.getElementById("game-header");
+            
+            // 모바일 URL 주소창 등을 제외한 실제 화면 높이(window.innerHeight)에서 
+            // 위쪽 헤더들의 높이와 하단 여백(30px)을 빼서 안전한 캔버스 높이를 구합니다.
+            let availableHeight = window.innerHeight - headerObj.offsetHeight - gameHeaderObj.offsetHeight - 30;
+
             canvas.width = container.clientWidth - 20; 
-            canvas.height = container.clientHeight - 20;
+            canvas.height = availableHeight;
             
             if (!isPlaying) {
                 paddleX = (canvas.width - paddleWidth) / 2;
@@ -257,12 +264,8 @@
             }
         }
         
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-            // 화면 크기 변경 시 벽돌 배열 재계산을 방지하려면 그대로 렌더링하도록 둠
-        });
-
-        // 초기 한 번 실행
+        // 화면 크기가 변할 때(주소창이 사라지거나 나타날 때) 즉각적으로 사이즈 조절
+        window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         function initGrid(isInfinite) {
@@ -275,7 +278,6 @@
 
             for (let r = 0; r < rows; r++) {
                 let row = [];
-                // 벽돌 너비 자동 계산
                 let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
                 
                 for (let c = 0; c < brickColumnCount; c++) {
@@ -351,7 +353,6 @@
             if (balls.length > 150) balls.splice(150);
         }
 
-        // 💡 패들 이동 로직 (마우스 & 터치 드래그)
         function movePaddle(e) {
             if (!isPlaying) return;
             let clientX;
@@ -491,7 +492,6 @@
             lastTime = currentTime;
 
             let timeScale = deltaTime / (1000 / 60);
-
             if (timeScale > 3) timeScale = 1;
 
             if (gameMode === 'infinite') {
