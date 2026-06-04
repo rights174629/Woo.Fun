@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>똥피하기 (초고속 & 렌더링 최적화)</title>
     <style>
-        /* 💡 모바일 브라우저 주소창 버그 해결을 위해 100dvh 적용 */
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100vh; 
-            height: 100dvh; /* 실제 모바일 가시 영역 높이 */
+            height: 100dvh; 
             background-color: #1e272e;
             color: #d2dae2;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -70,10 +69,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* 세로 중앙 정렬 */
+            justify-content: center; 
             background-color: #2c3e50;
             box-sizing: border-box;
-            overflow: hidden; /* 화면 밖으로 밀림 방지 */
+            overflow: hidden; 
         }
 
         .game-layout {
@@ -85,7 +84,7 @@
 
         #score-board {
             width: 100%;
-            max-width: 500px; /* 점수판 너비 제한 */
+            max-width: 800px; /* 💡 PC에서 커진 화면에 맞게 점수판 너비 제한 증가 */
             display: flex;
             justify-content: space-between;
             padding: 0 10px 10px 10px;
@@ -100,13 +99,10 @@
             color: #f1c40f;
         }
 
-        /* 💡 캔버스 컨테이너 (JS에서 크기를 직접 계산해서 주입) */
         #canvas-wrapper {
             position: relative;
-            /* 너비와 높이는 자바스크립트가 동적으로 계산합니다! */
         }
 
-        /* 💡 실제 캔버스는 부모(wrapper)에 무조건 100% 맞춰지도록 설정 */
         canvas {
             width: 100%;
             height: 100%;
@@ -122,7 +118,7 @@
         #mobile-controls {
             display: flex;
             width: 100%;
-            max-width: 500px; /* 버튼 패드 최대 너비 */
+            max-width: 800px; /* 💡 모바일 컨트롤러 너비 제한 증가 */
             gap: 12px;
             padding: 15px 15px 0 15px;
             box-sizing: border-box;
@@ -227,9 +223,7 @@
                 <span>점수: <span id="score" style="color: #ff9f43;">0</span></span>
             </div>
             
-            <!-- 💡 캔버스를 감싸는 래퍼 -->
             <div id="canvas-wrapper">
-                <!-- 내부 해상도는 900x1200 유지 (게임 물리엔진 보호) -->
                 <canvas id="gameCanvas" width="900" height="1200"></canvas>
                 
                 <div id="start-screen" class="overlay-screen">
@@ -275,40 +269,32 @@
         const poopImg = new Image(); poopImg.src = 'Poo.png';
         const umbImg = new Image(); umbImg.src = 'Umbrella.png';
 
-        // 💡 핵심: 화면 꽉 차게 동적 스케일링 해주는 함수
         function resizeCanvasLayout() {
             const header = document.querySelector("header");
             const scoreBoard = document.getElementById("score-board");
             const mobileControls = document.getElementById("mobile-controls");
             const canvasWrapper = document.getElementById("canvas-wrapper");
             
-            // 모바일 컨트롤 패드가 화면에 렌더링 중인지(PC인지 모바일인지) 확인하여 높이 계산
             const isMobileControlsVisible = window.innerWidth < 768;
             const controlsHeight = isMobileControlsVisible ? mobileControls.offsetHeight : 0;
             
-            // 화면 여백(위아래 패딩 등 약 40px)을 제외한 실제 사용 가능한 최대 세로 높이
             let availableHeight = window.innerHeight - header.offsetHeight - scoreBoard.offsetHeight - controlsHeight - 40;
-            let availableWidth = window.innerWidth - 30; // 양옆 여백
+            let availableWidth = window.innerWidth - 30;
 
-            // 3:4 비율을 맞추기 위한 최대 너비 계산
             let targetWidth = availableHeight * (3 / 4);
 
-            // 높이 기준으로 맞춘 너비가 실제 화면 너비보다 넓다면, 너비 기준으로 다시 맞춤
             if (targetWidth > availableWidth) {
                 targetWidth = availableWidth;
             }
 
-            // PC 화면에서 너무 비정상적으로 커지는 것 방지
-            if (targetWidth > 550) targetWidth = 550;
+            // 💡 PC에서 화면이 충분히 클 때 캔버스가 더 크게 렌더링되도록 최대 폭을 800으로 늘림
+            if (targetWidth > 800) targetWidth = 800;
             
-            // 계산된 완벽한 비율의 크기를 래퍼에 주입 (내부 캔버스는 100%로 따라감)
             canvasWrapper.style.width = targetWidth + 'px';
             canvasWrapper.style.height = (targetWidth * (4 / 3)) + 'px';
         }
 
-        // 창 크기가 바뀔 때(모바일에서 주소창 나타남/사라짐 포함)마다 크기 재조정
         window.addEventListener('resize', resizeCanvasLayout);
-        // 초기 로드 시 한 번 실행
         resizeCanvasLayout();
 
         let animationId;
@@ -338,13 +324,21 @@
             speed: 10, 
             hasUmbrella: false,
             umbrellaEndTime: 0,
+            lastMoveTime: 0, 
             
             update(timeScale) {
+                if (keys.left || keys.right) {
+                    this.lastMoveTime = Date.now();
+                }
+
                 if (keys.left) this.x -= this.speed * timeScale;
                 if (keys.right) this.x += this.speed * timeScale;
 
-                if (this.x < 0) this.x = 0;
-                if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+                if (this.x > canvas.width - this.w / 2) {
+                    this.x = -this.w / 2;
+                } else if (this.x < -this.w / 2) {
+                    this.x = canvas.width - this.w / 2;
+                }
 
                 this.draw();
             },
@@ -359,7 +353,7 @@
                     let isBlinking = false;
                     
                     if (timeLeft > 0) {
-                        if (timeLeft <= 1000) {
+                        if (timeLeft <= 2000) {
                             if (Math.floor(timeLeft / 200) % 2 === 0) {
                                 isBlinking = true; 
                             }
@@ -392,6 +386,17 @@
                     ctx.fillStyle = this.hasUmbrella ? "#f1c40f" : "#3498db";
                     ctx.fillRect(drawX, drawY, this.w, this.h);
                 }
+
+                let idleTime = Date.now() - this.lastMoveTime;
+                if (idleTime >= 5000) {
+                    let deathTimeLeft = Math.ceil((8000 - idleTime) / 1000);
+                    if (deathTimeLeft > 0) {
+                        ctx.fillStyle = (Math.floor(globalTime / 5) % 2 === 0) ? "#e74c3c" : "#f1c40f";
+                        ctx.font = "bold 26px 'Segoe UI'";
+                        ctx.textAlign = "center";
+                        ctx.fillText(`이동하세요! (${deathTimeLeft})`, drawX + this.w / 2, drawY - 20);
+                    }
+                }
             },
 
             equipUmbrella() {
@@ -412,12 +417,13 @@
         let meteors = []; 
 
         class Poop {
-            constructor() {
+            constructor(fixedX = null, fixedSpeed = null) {
                 this.w = 72;
                 this.h = 72;
-                this.x = Math.random() * (canvas.width - this.w);
+                this.x = fixedX !== null ? fixedX : Math.random() * (canvas.width - this.w);
                 this.y = -this.h; 
-                this.speed = Math.random() * 3 + 6.0 + (score / 800); 
+                // 💡 초반 똥 떨어지는 속도를 6.0에서 8.5로 대폭 상향
+                this.speed = fixedSpeed !== null ? fixedSpeed : Math.random() * 3 + 8.5 + (score / 800); 
                 
                 this.isBouncing = false;
                 this.vx = 0; 
@@ -592,14 +598,44 @@
             if (spawnCounter >= spawnRate) {
                 spawnCounter = 0; 
                 
-                if (Math.random() < 0.01) {
-                    items.push(new Item());
+                if (score >= 5000 && Math.random() < 0.1) {
+                    let totalSlots = 12; 
+                    let offset = 18; 
+                    
+                    // 💡 구멍 2개를 뚫되, 각각 2칸짜리 넓은 구멍으로 생성
+                    let hole1 = Math.floor(Math.random() * (totalSlots - 1));
+                    let hole2 = Math.floor(Math.random() * (totalSlots - 1));
+                    
+                    // 두 구멍이 겹치지 않게 간격 확보
+                    while (Math.abs(hole1 - hole2) <= 2) {
+                        hole2 = Math.floor(Math.random() * (totalSlots - 1));
+                    }
+                    
+                    // 패턴 시에는 속도 상향 공식 적용
+                    let patternSpeed = 8.5 + (score / 800);
+
+                    for (let i = 0; i < totalSlots; i++) {
+                        // hole1과 hole1의 오른쪽 칸, hole2와 hole2의 오른쪽 칸을 비워 2칸 간격을 만듦
+                        if (i !== hole1 && i !== (hole1 + 1) && i !== hole2 && i !== (hole2 + 1)) {
+                            poops.push(new Poop(offset + i * 72, patternSpeed));
+                        }
+                    }
                 } else {
-                    poops.push(new Poop());
+                    if (Math.random() < 0.01) {
+                        items.push(new Item());
+                    } else {
+                        poops.push(new Poop());
+                    }
                 }
 
-                if (score >= 2000 && meteors.length < 5) {
-                    if (Math.random() < 0.05) {
+                let meteorChance = 0;
+                if (score >= 7000) meteorChance = 0.10;
+                else if (score >= 5000) meteorChance = 0.08;
+                else if (score >= 3000) meteorChance = 0.06;
+                else if (score >= 2000) meteorChance = 0.05;
+
+                if (meteorChance > 0 && meteors.length < 5) {
+                    if (Math.random() < meteorChance) {
                         meteors.push(new MeteorStrike(player.x + player.w / 2));
                     }
                 }
@@ -634,7 +670,7 @@
                         poop.bounce();
                         scoreFloat += 20; 
                     } else {
-                        gameOver();
+                        gameOver("poop");
                     }
                 } else if (poop.y > canvas.height) {
                     poops.splice(i, 1);
@@ -656,13 +692,19 @@
                             meteor.bounce();
                             scoreFloat += 50; 
                         } else {
-                            gameOver();
+                            gameOver("meteor");
                         }
                     }
                 }
             }
 
             player.update(timeScale); 
+
+            if (Date.now() - player.lastMoveTime >= 8000) {
+                gameOver("afk");
+                return;
+            }
+
             animationId = requestAnimationFrame(animate);
         }
 
@@ -708,6 +750,7 @@
             
             player.x = canvas.width / 2 - player.w / 2;
             player.hasUmbrella = false;
+            player.lastMoveTime = Date.now(); 
             keys.left = false;
             keys.right = false;
 
@@ -716,7 +759,7 @@
             animationId = requestAnimationFrame(animate);
         }
 
-        function gameOver() {
+        function gameOver(reason) {
             isPlaying = false;
             cancelAnimationFrame(animationId);
             
@@ -726,7 +769,13 @@
                 highScoreElement.innerText = highScore;
             }
             
+            let deathMessage = "GAME OVER";
+            if (reason === "afk") {
+                deathMessage = "잠수 타지 마세요!";
+            }
+
             gameOverStats.innerHTML = `
+                <strong style="color:#e74c3c; font-size: 22px; display:block; margin-bottom: 15px;">${deathMessage}</strong>
                 생존 시간 : <span style="color:#e74c3c;">${formattedTime}</span><br>
                 현재 점수 : <span style="color:#f1c40f;">${score}</span> 점<br>
                 최고 점수 : <span style="color:#2ecc71;">${highScore}</span> 점
@@ -735,7 +784,6 @@
             gameOverScreen.style.display = "flex";
         }
 
-        // 창 크기 변경 시 레이아웃 다시 잡기
         window.addEventListener('resize', resizeCanvasLayout);
 
         player.draw();
