@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌 깨기 (완성형 & 최적화)</title>
+    <title>벽돌 깨기 (최종 밸런스 & 타이머 패치)</title>
     <style>
         html, body {
             margin: 0;
@@ -79,10 +79,16 @@
             font-size: 16px;
             font-weight: bold;
             flex-shrink: 0;
+            background-color: rgba(0,0,0,0.2);
+            border-bottom: 2px solid rgba(255,255,255,0.05);
         }
 
-        .header-group { display: flex; flex-direction: column; align-items: center; }
+        .header-group { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .high-score-text { font-size: 12px; color: #f1c40f; margin-top: 4px; }
+        
+        /* 중앙 점수/타이머 영역 강조 */
+        .score-display { font-size: 20px; color: #2ecc71; }
+        .time-display { font-size: 14px; color: #00d2d3; margin-top: 2px; }
 
         #canvas-container {
             position: relative;
@@ -104,6 +110,7 @@
             display: block;
         }
 
+        /* 💡 즉시회수 버튼 */
         #btn-recall {
             position: absolute;
             bottom: 80px; 
@@ -131,10 +138,23 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: rgba(26, 26, 46, 0.92);
+            background-color: rgba(26, 26, 46, 0.95);
             border-radius: 10px;
             z-index: 10;
             text-align: center;
+        }
+
+        .stats-box {
+            background: rgba(0,0,0,0.5); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 25px; 
+            text-align: left; 
+            color: #ecf0f1; 
+            font-size: 16px; 
+            line-height: 1.8;
+            border: 1px solid #34495e;
+            min-width: 200px;
         }
 
         .btn {
@@ -168,7 +188,8 @@
                 <span class="high-score-text">최고 점수: <span id="high-score">0</span></span>
             </div>
             <div class="header-group">
-                <span>점수: <span id="score">0</span></span>
+                <span class="score-display">점수: <span id="score">0</span></span>
+                <span class="time-display">⏱ <span id="play-time">00:00</span></span>
             </div>
             <div class="header-group" style="align-items: flex-end;">
                 <span>보유 공: <span id="ball-count" style="color: #00d2d3;">30</span></span>
@@ -178,7 +199,7 @@
         <div id="canvas-container">
             <canvas id="gameCanvas"></canvas>
             
-            <button id="btn-recall" onclick="recallBalls()">즉시 회수</button>
+            <button id="btn-recall" onclick="recallBalls()">⏬ 즉시회수</button>
             
             <div id="start-screen" class="overlay-screen">
                 <h2 style="margin-bottom: 20px; color: #fff;">스테이지 벽돌 깨기!</h2>
@@ -194,8 +215,14 @@
             </div>
 
             <div id="game-over-screen" class="overlay-screen" style="display: none;">
-                <h2 style="color: #e74c3c; margin-bottom: 10px; font-size: 32px;">GAME OVER</h2>
-                <p style="color: #ecf0f1; margin-bottom: 25px;">벽돌이 바닥에 닿았습니다!</p>
+                <h2 style="color: #e74c3c; margin-bottom: 10px; font-size: 36px; text-shadow: 0 4px 10px rgba(231,76,60,0.5);">GAME OVER</h2>
+                
+                <div class="stats-box">
+                    • 생존 시간 : <span id="final-time" style="color: #f1c40f; font-weight: bold;">00:00</span><br>
+                    • 현재 점수 : <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span> 점<br>
+                    • 최고 점수 : <span id="final-highscore" style="color: #00d2d3; font-weight: bold;">0</span> 점
+                </div>
+
                 <button class="btn" onclick="startGame()">다시 시작</button>
             </div>
         </div>
@@ -208,6 +235,7 @@
         const scoreDisplay = document.getElementById("score");
         const ballCountDisplay = document.getElementById("ball-count");
         const highScoreDisplay = document.getElementById("high-score");
+        const playTimeDisplay = document.getElementById("play-time");
         
         const startScreen = document.getElementById("start-screen");
         const nextStageScreen = document.getElementById("next-stage-screen");
@@ -221,6 +249,7 @@
         let gameState = 'ready'; 
         let score = 0;
         let stage = 1;
+        let playTime = 0; // 초 단위 타이머
 
         let paddleHeight = 15;
         let paddleWidth = 80; 
@@ -232,22 +261,25 @@
         let fireTimer = 0;
         let activeBalls = [];
         let ballRadius = 6;
-        let baseSpeed = 26.0; // 시원한 타격감을 위한 속도 상향
+        let baseSpeed = 27.0; // 💡 공 속도 27.0으로 최종 상향
 
         let isAiming = false;
         let aimVector = { dx: 0, dy: 0 };
         let mousePos = { x: 0, y: 0 };
 
         let brickColumnCount = 7;
-        let brickRowCount = 8; 
-        let brickPadding = 6;
-        let brickOffsetTop = 60; 
-        let brickHeight = 35; 
+        let brickRowCount = 6; // 시작 시 생성되는 줄 수
+        let totalRowsFit = 14; // 💡 PC/모바일 밸런스 표준화 (화면에 총 14줄이 들어감)
+        
+        let brickPadding = 5;
+        let brickOffsetTop = 20; // 💡 시작 시 윗 공간(공백) 최소화
+        let brickHeight = 35; // 가변 계산됨
         let grid = []; 
         let dropOffset = 0; 
 
         const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
 
+        // 💡 PC/모바일 환경 상관없이 동일한 높이 비율을 가지도록 brickHeight를 동적 계산
         function resizeCanvas() {
             const container = document.getElementById("canvas-container");
             const headerObj = document.querySelector("header");
@@ -257,6 +289,10 @@
             canvas.width = container.clientWidth - 20; 
             canvas.height = availableHeight;
             
+            // 패들 위의 남은 공간을 totalRowsFit(14칸)으로 공평하게 나눔
+            let playableHeight = canvas.height - paddleHeight - 20 - brickOffsetTop;
+            brickHeight = (playableHeight / totalRowsFit) - brickPadding;
+
             if(gameState === 'ready' && nextLaunchX === null) {
                 paddleX = (canvas.width - paddleWidth) / 2;
             }
@@ -268,9 +304,11 @@
         function initGrid() {
             grid = [];
             dropOffset = 0; 
-            let maxHp = stage * 5; 
+            // 💡 최대 체력은 스테이지에 비례하되, 최대 50을 넘지 않도록 제한
+            let maxHp = Math.min(stage * 5, 50); 
 
-            let hasItem = Math.random() < 0.05;
+            // 💡 +5 아이템이 나올 확률을 30%로 대폭 상향
+            let hasItem = Math.random() < 0.30;
             let itemRow = Math.floor(Math.random() * brickRowCount);
             let itemCol = Math.floor(Math.random() * brickColumnCount);
 
@@ -285,7 +323,8 @@
                     }
 
                     let rand = Math.random();
-                    if (rand < 0.15) {
+                    // 💡 맨 윗줄(r=0)은 공백 없이 무조건 생성되게 하여 착시 현상 방지
+                    if (rand < 0.15 && r !== 0) {
                         row.push({ status: 0, hp: 0, w: brickWidth, h: brickHeight, isItem: false });
                     } else {
                         let randomHp = Math.floor(Math.random() * maxHp) + 1;
@@ -347,7 +386,6 @@
         window.addEventListener("pointerup", handlePointerUp, { passive: false });
         canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
 
-        // 💡 지오메트리 대시 스타일의 무중력 회수 트리거
         function recallBalls() {
             if (gameState === 'ready' || gameState === 'recalling') return;
             gameState = 'recalling';
@@ -359,8 +397,8 @@
             activeBalls.forEach(ball => {
                 if (!ball.isLanded) {
                     ball.isRecalling = true;
-                    ball.recallDelay = 8; // 💡 공중에 멈칫! 하는 무중력 지연 프레임
-                    ball.recallSpeed = 1; // 💡 이후 폭발적으로 가속될 초기 속도
+                    ball.recallDelay = 8; 
+                    ball.recallSpeed = 1; 
                 }
             });
         }
@@ -370,6 +408,20 @@
             ctx.roundRect(paddleX, canvas.height - paddleHeight - 5, paddleWidth, paddleHeight, 5);
             ctx.fillStyle = "#e94560";
             ctx.fill();
+            ctx.closePath();
+        }
+
+        // 💡 플레이어가 벽돌이 닿으면 죽는 위치를 알 수 있도록 데스라인 추가
+        function drawDeathLine() {
+            let deathY = canvas.height - paddleHeight - 20;
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, deathY);
+            ctx.lineTo(canvas.width, deathY);
+            ctx.strokeStyle = "rgba(231, 76, 60, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
             ctx.closePath();
         }
 
@@ -406,10 +458,10 @@
                             let b = grid[r][c];
                             if (b.status === 1) {
                                 let brickX = (c * (b.w + brickPadding)) + brickPadding;
-                                let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
+                                let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
                                 
                                 if (cX + ballRadius > brickX && cX - ballRadius < brickX + b.w && 
-                                    cY + ballRadius > brickY && cY - ballRadius < brickY + b.h) {
+                                    cY + ballRadius > brickY && cY - ballRadius < brickY + brickHeight) {
                                     hitTarget = true;
                                     break;
                                 }
@@ -436,28 +488,28 @@
                     let b = grid[r][c];
                     if (b.status === 1) {
                         let brickX = (c * (b.w + brickPadding)) + brickPadding;
-                        let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
+                        let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
                         
                         ctx.beginPath();
                         
                         if (b.isItem) {
-                            ctx.arc(brickX + b.w / 2, brickY + b.h / 2, b.h / 2, 0, Math.PI * 2);
+                            ctx.arc(brickX + b.w / 2, brickY + brickHeight / 2, Math.min(b.w, brickHeight) / 2 - 2, 0, Math.PI * 2);
                             ctx.fillStyle = "#2ecc71";
                             ctx.fill();
                             ctx.fillStyle = "#fff";
-                            ctx.font = "bold 14px Arial";
+                            ctx.font = "bold 13px Arial";
                             ctx.textAlign = "center";
                             ctx.textBaseline = "middle";
-                            ctx.fillText("+5", brickX + b.w / 2, brickY + b.h / 2);
+                            ctx.fillText("+5", brickX + b.w / 2, brickY + brickHeight / 2);
                         } else {
-                            ctx.roundRect(brickX, brickY, b.w, b.h, 4);
+                            ctx.roundRect(brickX, brickY, b.w, brickHeight, 4);
                             ctx.fillStyle = hpColors[(b.hp - 1) % hpColors.length];
                             ctx.fill();
                             ctx.fillStyle = "#fff";
                             ctx.font = "bold 15px Arial";
                             ctx.textAlign = "center";
                             ctx.textBaseline = "middle";
-                            ctx.fillText(b.hp, brickX + b.w / 2, brickY + b.h / 2);
+                            ctx.fillText(b.hp, brickX + b.w / 2, brickY + brickHeight / 2);
                         }
                         ctx.closePath();
                     }
@@ -503,6 +555,14 @@
             let timeScale = deltaTime / (1000 / 60);
             if (timeScale > 3) timeScale = 1;
 
+            // 💡 타이머 업데이트 연산
+            if (gameState === 'playing' || gameState === 'shooting' || gameState === 'ready' || gameState === 'recalling') {
+                playTime += deltaTime / 1000;
+                let m = Math.floor(playTime / 60).toString().padStart(2, '0');
+                let s = Math.floor(playTime % 60).toString().padStart(2, '0');
+                playTimeDisplay.innerText = `${m}:${s}`;
+            }
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameState === 'shooting' && ballsToFire > 0) {
@@ -522,24 +582,20 @@
             let groundY = canvas.height - paddleHeight - 10;
             let movingBallsCount = 0;
             
-            // 💡 고속 물리 계산 최적화 로직
             for (let step = 0; step < 2; step++) {
                 let subTimeScale = timeScale / 2;
 
                 for (let i = 0; i < activeBalls.length; i++) {
                     let ball = activeBalls[i];
 
-                    // 💡 지오메트리 대시 스타일 - 무중력 회수 애니메이션
                     if (ball.isRecalling) {
                         if (step === 0) movingBallsCount++;
                         
                         if (ball.recallDelay > 0) {
-                            // 공중에 붕 뜨는 무중력 연출 (속도 90% 감소)
                             ball.x += ball.dx * 0.1 * subTimeScale;
                             ball.y += ball.dy * 0.1 * subTimeScale;
                             ball.recallDelay -= subTimeScale;
                         } else {
-                            // 타겟으로 무서운 속도로 빨려 들어감
                             let dx = nextLaunchX - ball.x;
                             let dy = groundY - ball.y;
                             let dist = Math.sqrt(dx*dx + dy*dy);
@@ -550,7 +606,7 @@
                                 ball.x = nextLaunchX;
                                 ball.y = groundY;
                             } else {
-                                ball.recallSpeed += 4.0 * subTimeScale; // 기하급수적 가속
+                                ball.recallSpeed += 4.0 * subTimeScale; 
                                 let moveDist = Math.min(ball.recallSpeed * subTimeScale, dist);
                                 ball.x += (dx / dist) * moveDist;
                                 ball.y += (dy / dist) * moveDist;
@@ -559,7 +615,6 @@
                         continue;
                     }
 
-                    // 착륙한 공이 목표지점으로 스르륵 모이는 로직
                     if (ball.isLanded) {
                         if (step === 0) {
                             let slideDist = nextLaunchX - ball.x;
@@ -584,7 +639,7 @@
                     if (ball.y >= groundY) {
                         ball.y = groundY;
                         ball.isLanded = true;
-                        if (nextLaunchX === null) nextLaunchX = ball.x; // 처음 닿은 위치 기억
+                        if (nextLaunchX === null) nextLaunchX = ball.x; 
                     }
 
                     if (!ball.isLanded && !ball.isRecalling) {
@@ -593,21 +648,20 @@
                                 let b = grid[r][c];
                                 if (b.status === 1) {
                                     let brickX = (c * (b.w + brickPadding)) + brickPadding;
-                                    let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
+                                    let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
 
                                     if (ball.x + ballRadius > brickX && ball.x - ballRadius < brickX + b.w && 
-                                        ball.y + ballRadius > brickY && ball.y - ballRadius < brickY + b.h) {
+                                        ball.y + ballRadius > brickY && ball.y - ballRadius < brickY + brickHeight) {
                                         
                                         if (b.isItem) {
                                             b.status = 0;
                                             totalBalls += 5; 
                                             score += 50;
                                         } else {
-                                            // 💡 갇힘(Tunneling) 완벽 방지 보정 로직
                                             let overlapLeft = (ball.x + ballRadius) - brickX;
                                             let overlapRight = (brickX + b.w) - (ball.x - ballRadius);
                                             let overlapTop = (ball.y + ballRadius) - brickY;
-                                            let overlapBottom = (brickY + b.h) - (ball.y - ballRadius);
+                                            let overlapBottom = (brickY + brickHeight) - (ball.y - ballRadius);
 
                                             let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
 
@@ -622,7 +676,7 @@
                                                 ball.y = brickY - ballRadius; 
                                             } else if (minOverlap === overlapBottom) {
                                                 ball.dy = Math.abs(ball.dy); 
-                                                ball.y = brickY + b.h + ballRadius; 
+                                                ball.y = brickY + brickHeight + ballRadius; 
                                             }
                                             
                                             b.hp -= 1; 
@@ -637,6 +691,7 @@
                 }
             }
 
+            drawDeathLine();
             drawBricks();
             drawPaddle();
             drawAimLine();
@@ -644,7 +699,6 @@
             
             scoreDisplay.innerText = score;
 
-            // 💡 턴 종료 체크
             let allGathered = true;
             for(let i=0; i<activeBalls.length; i++) {
                 if (!activeBalls[i].isLanded || Math.abs(activeBalls[i].x - nextLaunchX) > 5) {
@@ -664,15 +718,14 @@
                 activeBalls = []; 
                 nextLaunchX = null;
 
-                // 턴 종료 시 벽돌 한 칸 하강
                 dropOffset += brickHeight + brickPadding;
 
-                // 💡 해결된 오류: 하강 후 게임 오버 체크 시점에서의 참조 오류 수정
                 let isGameOver = false;
                 for (let r = 0; r < grid.length; r++) {
                     for (let c = 0; c < brickColumnCount; c++) {
                         if (grid[r][c].status === 1) {
                             let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+                            // 💡 데스라인 터치 감지 정확도 향상
                             if (brickY + brickHeight >= canvas.height - paddleHeight - 20) {
                                 isGameOver = true;
                             }
@@ -720,6 +773,7 @@
             resizeCanvas();
             stage = 1;
             score = 0;
+            playTime = 0; 
             gameState = 'ready';
             activeBalls = [];
             ballsToFire = 0;
@@ -728,6 +782,7 @@
             
             document.getElementById("stage-display").innerText = stage;
             ballCountDisplay.innerText = totalBalls;
+            playTimeDisplay.innerText = "00:00";
             
             initGrid();
             
@@ -757,13 +812,19 @@
             gameState = 'gameover';
             cancelAnimationFrame(animationId);
             btnRecall.style.display = "none";
-            gameOverScreen.style.display = "flex";
-
+            
             if (score > stageHighScore) {
                 stageHighScore = score;
                 localStorage.setItem('brickStageHighScore', stageHighScore);
                 highScoreDisplay.innerText = stageHighScore;
             }
+
+            // 💡 게임 오버 창에 플레이 결과 업데이트
+            document.getElementById("final-time").innerText = playTimeDisplay.innerText;
+            document.getElementById("final-score").innerText = score;
+            document.getElementById("final-highscore").innerText = stageHighScore;
+
+            gameOverScreen.style.display = "flex";
         }
     </script>
 </body>
