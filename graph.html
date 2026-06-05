@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* 💡 100dvh를 추가하여 모바일 브라우저 주소창 버그 완벽 해결 */
         body {
             margin: 0;
             padding: 0;
@@ -71,7 +70,7 @@
             display: flex;
             flex-direction: row; 
             gap: 20px;
-            overflow: hidden; /* 컨테이너 밖으로 밀림 방지 */
+            overflow: hidden; 
         }
 
         .sidebar {
@@ -85,7 +84,7 @@
             border-radius: 12px;
             box-sizing: border-box;
             height: 100%;
-            overflow: hidden; /* 내부 스크롤을 위해 필수 */
+            overflow: hidden; 
         }
 
         .presets {
@@ -109,7 +108,6 @@
 
         .preset-btn:hover { background-color: #f1c40f; color: #000; }
 
-        /* 수식 리스트가 남은 공간을 차지하며 내부 스크롤 생성 */
         .formula-list {
             display: flex;
             flex-direction: column;
@@ -117,7 +115,7 @@
             flex-grow: 1;
             overflow-y: auto;
             padding-right: 5px;
-            min-height: 0; /* Flexbox 버그 방지 */
+            min-height: 0; 
         }
 
         .formula-list::-webkit-scrollbar { width: 6px; }
@@ -229,7 +227,6 @@
             outline: none;
         }
 
-        /* 💡 줌 버튼 디자인 추가 */
         .zoom-group {
             display: flex;
             gap: 10px;
@@ -260,7 +257,6 @@
             box-sizing: border-box;
         }
 
-        /* 💡 모바일 뷰 완전 개편: 픽셀 고정을 없애고 flex로 자동 배분 */
         @media (max-width: 768px) {
             .container {
                 flex-direction: column; 
@@ -269,14 +265,12 @@
             }
             .sidebar {
                 width: 100%;
-                /* 💡 화면 높이의 최대 45%까지만 차지하도록 설정 */
                 flex: 0 0 45%; 
                 max-height: 45%;
                 padding: 10px;
             }
             .chart-container {
                 width: 100%;
-                /* 💡 남은 공간(55%)을 꽉 채우도록 설정 */
                 flex: 1; 
                 height: auto;
                 padding: 10px;
@@ -372,7 +366,6 @@
             return str.replace(/(\d)([a-zA-Z])/g, '$1*$2');
         }
 
-        // 💡 줌 인 / 줌 아웃 로직 처리
         function zoomGraph(factor) {
             const minInput = document.getElementById('xMin');
             const maxInput = document.getElementById('xMax');
@@ -382,25 +375,20 @@
 
             if (isNaN(min) || isNaN(max) || min >= max) return;
 
-            // 중심점 계산
             let center = (min + max) / 2;
             let currentRange = max - min;
             
-            // factor 곱하기 (0.5면 절반으로 줌 인, 2.0이면 두 배로 줌 아웃)
             let newRange = currentRange * factor;
 
-            // 너무 좁아지거나 너무 넓어지는 것을 방지
             if (newRange < 0.1) newRange = 0.1;
             if (newRange > 10000) newRange = 10000;
 
             let newMin = center - (newRange / 2);
             let newMax = center + (newRange / 2);
 
-            // 소수점 2자리까지만 깔끔하게 잘라서 input에 업데이트
             minInput.value = parseFloat(newMin.toFixed(2));
             maxInput.value = parseFloat(newMax.toFixed(2));
 
-            // 변경된 범위로 그래프 다시 그리기
             drawGraph();
         }
 
@@ -428,8 +416,8 @@
                 try {
                     const compiledFormula = math.compile(formula);
                     const dataPoints = [];
-                    // X축 범위를 200개의 점으로 나누어 부드럽게 렌더링
-                    const step = (xMax - xMin) / 200; 
+                    // 💡 해상도를 높여서 확대해도 부드럽게 보이도록 점 개수 증가
+                    const step = (xMax - xMin) / 500; 
 
                     for (let x = xMin; x <= xMax; x += step) {
                         let y = compiledFormula.evaluate({ x: x });
@@ -472,13 +460,16 @@
                         x: { 
                             type: 'linear', 
                             position: 'center',
-                            min: xMin, // 확대/축소를 위한 X축 고정
+                            min: xMin, 
                             max: xMax,
                             grid: { color: 'rgba(255, 255, 255, 0.1)' },
                             ticks: { color: '#bdc3c7' }
                         },
+                        // 💡 Y축에 min, max를 강제로 주입하여 X축과 함께 스케일링 되도록 수정!
                         y: { 
                             position: 'center',
+                            min: xMin, // Y 최소값을 X 최소값과 맞춤
+                            max: xMax, // Y 최대값을 X 최대값과 맞춤
                             grid: { color: 'rgba(255, 255, 255, 0.1)' },
                             ticks: { color: '#bdc3c7' }
                         }
