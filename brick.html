@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>벽돌 깨기 (30구 & 회수 시스템)</title>
+    <title>벽돌 깨기 (완성형 & 최적화)</title>
     <style>
         html, body {
             margin: 0;
@@ -32,6 +32,7 @@
             flex-shrink: 0;
             width: 100%;
             box-sizing: border-box;
+            z-index: 10;
         }
 
         .btn-main-go {
@@ -46,9 +47,7 @@
             font-weight: bold;
             font-size: 14px;
             box-shadow: 0 4px 0 #27ae60;
-            transition: all 0.1s;
         }
-        .btn-main-go:hover { background: #27ae60; }
         .btn-main-go:active { transform: translateY(4px); box-shadow: 0 0 0 #27ae60; }
 
         h1 {
@@ -82,17 +81,8 @@
             flex-shrink: 0;
         }
 
-        .header-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .high-score-text {
-            font-size: 12px;
-            color: #f1c40f;
-            margin-top: 4px;
-        }
+        .header-group { display: flex; flex-direction: column; align-items: center; }
+        .high-score-text { font-size: 12px; color: #f1c40f; margin-top: 4px; }
 
         #canvas-container {
             position: relative;
@@ -101,7 +91,7 @@
             flex-grow: 1; 
             display: flex;
             justify-content: center;
-            padding: 0 10px 20px 10px; 
+            padding: 0 10px 10px 10px; 
             box-sizing: border-box;
         }
 
@@ -114,38 +104,34 @@
             display: block;
         }
 
-        /* 💡 즉시 회수 버튼: 슬라이드(패들)보다 안전하게 위로 띄움 */
         #btn-recall {
             position: absolute;
-            bottom: 100px; 
+            bottom: 80px; 
             left: 50%;
             transform: translateX(-50%);
-            background-color: #e74c3c;
+            background-color: #9b59b6;
             color: white;
             padding: 12px 25px;
             font-size: 16px;
             font-weight: bold;
             border: none;
             border-radius: 25px;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.6);
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.6);
             cursor: pointer;
             display: none; 
             z-index: 5;
             transition: all 0.1s;
         }
-        #btn-recall:active { transform: translateX(-50%) translateY(4px); box-shadow: 0 0 0 #c0392b; }
+        #btn-recall:active { transform: translateX(-50%) translateY(4px); box-shadow: 0 0 0 #8e44ad; }
 
         .overlay-screen {
             position: absolute;
-            top: 0;
-            left: 10px;
-            right: 10px;
-            bottom: 20px;
+            top: 0; left: 10px; right: 10px; bottom: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: rgba(26, 26, 46, 0.9);
+            background-color: rgba(26, 26, 46, 0.92);
             border-radius: 10px;
             z-index: 10;
             text-align: center;
@@ -161,11 +147,9 @@
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(233, 69, 96, 0.4);
-            transition: transform 0.1s;
             margin: 10px 5px;
             width: 200px;
         }
-
         .btn:active { transform: scale(0.95); }
         .btn-gold { background-color: #f1c40f; color: #333; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.4); }
     </style>
@@ -194,20 +178,25 @@
         <div id="canvas-container">
             <canvas id="gameCanvas"></canvas>
             
-            <button id="btn-recall" onclick="recallBalls()">⏬ 공 즉시 회수</button>
+            <button id="btn-recall" onclick="recallBalls()">🌀 중력 상실 회수</button>
             
             <div id="start-screen" class="overlay-screen">
                 <h2 style="margin-bottom: 20px; color: #fff;">스테이지 벽돌 깨기!</h2>
                 <p style="color: #00d2d3; margin-bottom: 5px;">공 30개를 당구처럼 조준해서 쏘세요.</p>
-                <p style="color: #aaa; margin-bottom: 20px; font-size: 14px;">(모든 벽돌을 부수면 다음 스테이지로 갑니다)</p>
+                <p style="color: #aaa; margin-bottom: 20px; font-size: 14px;">(한 번 쏠 때마다 벽돌이 한 칸씩 내려옵니다)</p>
                 <button class="btn" onclick="startGame()">🎯 게임 시작</button>
             </div>
 
             <div id="next-stage-screen" class="overlay-screen" style="display: none;">
                 <h2 style="color: #f1c40f; margin-bottom: 10px; font-size: 28px;">STAGE CLEAR!</h2>
-                <p style="color: #ecf0f1; margin-bottom: 5px;">점수를 유지한 채 다음 스테이지로 이동합니다.</p>
-                <p style="color: #e74c3c; font-weight: bold; font-size: 14px; margin-bottom: 20px;">벽돌의 체력이 더 단단해집니다!</p>
-                <button class="btn btn-gold" onclick="nextStage()">다음 스테이지 도전</button>
+                <p style="color: #ecf0f1; margin-bottom: 5px;">다음 스테이지로 이동합니다.</p>
+                <button class="btn btn-gold" onclick="nextStage()">다음 도전</button>
+            </div>
+
+            <div id="game-over-screen" class="overlay-screen" style="display: none;">
+                <h2 style="color: #e74c3c; margin-bottom: 10px; font-size: 32px;">GAME OVER</h2>
+                <p style="color: #ecf0f1; margin-bottom: 25px;">벽돌이 바닥에 닿았습니다!</p>
+                <button class="btn" onclick="startGame()">다시 시작</button>
             </div>
         </div>
     </div>
@@ -222,6 +211,7 @@
         
         const startScreen = document.getElementById("start-screen");
         const nextStageScreen = document.getElementById("next-stage-screen");
+        const gameOverScreen = document.getElementById("game-over-screen");
         const btnRecall = document.getElementById("btn-recall");
 
         let stageHighScore = localStorage.getItem('brickStageHighScore') || 0;
@@ -235,16 +225,14 @@
         let paddleHeight = 15;
         let paddleWidth = 80; 
         let paddleX = 0; 
-        let nextLaunchX = null; // 💡 다음 턴에 쏠 X 좌표 (공이 모이는 곳)
+        let nextLaunchX = null; 
         
         let totalBalls = 30;
         let ballsToFire = 0;
         let fireTimer = 0;
         let activeBalls = [];
         let ballRadius = 6;
-        
-        // 💡 속도 2배 상향 적용
-        let baseSpeed = 24.0; 
+        let baseSpeed = 26.0; // 시원한 타격감을 위한 속도 상향
 
         let isAiming = false;
         let aimVector = { dx: 0, dy: 0 };
@@ -256,6 +244,7 @@
         let brickOffsetTop = 60; 
         let brickHeight = 35; 
         let grid = []; 
+        let dropOffset = 0; 
 
         const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
 
@@ -264,11 +253,13 @@
             const headerObj = document.querySelector("header");
             const gameHeaderObj = document.getElementById("game-header");
             
-            let availableHeight = window.innerHeight - headerObj.offsetHeight - gameHeaderObj.offsetHeight - 30;
+            let availableHeight = window.innerHeight - headerObj.offsetHeight - gameHeaderObj.offsetHeight - 20;
             canvas.width = container.clientWidth - 20; 
             canvas.height = availableHeight;
             
-            paddleX = (canvas.width - paddleWidth) / 2;
+            if(gameState === 'ready' && nextLaunchX === null) {
+                paddleX = (canvas.width - paddleWidth) / 2;
+            }
         }
         
         window.addEventListener('resize', resizeCanvas);
@@ -276,19 +267,29 @@
 
         function initGrid() {
             grid = [];
+            dropOffset = 0; 
             let maxHp = stage * 5; 
+
+            let hasItem = Math.random() < 0.05;
+            let itemRow = Math.floor(Math.random() * brickRowCount);
+            let itemCol = Math.floor(Math.random() * brickColumnCount);
 
             for (let r = 0; r < brickRowCount; r++) {
                 let row = [];
                 let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
                 
                 for (let c = 0; c < brickColumnCount; c++) {
+                    if (hasItem && r === itemRow && c === itemCol) {
+                        row.push({ status: 1, hp: 1, w: brickWidth, h: brickHeight, isItem: true });
+                        continue;
+                    }
+
                     let rand = Math.random();
                     if (rand < 0.15) {
-                        row.push({ status: 0, hp: 0, w: brickWidth, h: brickHeight });
+                        row.push({ status: 0, hp: 0, w: brickWidth, h: brickHeight, isItem: false });
                     } else {
                         let randomHp = Math.floor(Math.random() * maxHp) + 1;
-                        row.push({ status: 1, hp: randomHp, w: brickWidth, h: brickHeight });
+                        row.push({ status: 1, hp: randomHp, w: brickWidth, h: brickHeight, isItem: false });
                     }
                 }
                 grid.push(row);
@@ -314,7 +315,7 @@
                 gameState = 'shooting';
                 ballsToFire = totalBalls;
                 fireTimer = 0;
-                nextLaunchX = null; // 발사할 때마다 초기화
+                nextLaunchX = null; 
                 btnRecall.style.display = "block"; 
             }
         }
@@ -329,7 +330,7 @@
             mousePos.y = (clientY - rect.top) * (canvas.height / rect.height);
 
             let startX = paddleX + paddleWidth / 2;
-            let startY = canvas.height - paddleHeight - ballRadius;
+            let startY = canvas.height - paddleHeight - ballRadius - 5;
 
             let dx = mousePos.x - startX;
             let dy = mousePos.y - startY;
@@ -341,35 +342,37 @@
             aimVector.dy = (dy / dist) * baseSpeed;
         }
 
-        canvas.addEventListener("pointerdown", handlePointerDown);
-        canvas.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
+        canvas.addEventListener("pointermove", handlePointerMove, { passive: false });
+        window.addEventListener("pointerup", handlePointerUp, { passive: false });
         canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
 
-        // 💡 모든 공을 즉시 바닥으로 강제 착륙시킴
+        // 💡 지오메트리 대시 스타일의 무중력 회수 트리거
         function recallBalls() {
-            if (gameState === 'ready') return;
-            
-            for (let i = 0; i < activeBalls.length; i++) {
-                if (!activeBalls[i].isLanded) {
-                    activeBalls[i].y = canvas.height - paddleHeight - 15;
-                    activeBalls[i].isLanded = true;
-                    if (nextLaunchX === null) nextLaunchX = activeBalls[i].x;
-                }
-            }
-            ballsToFire = 0;
+            if (gameState === 'ready' || gameState === 'recalling') return;
+            gameState = 'recalling';
             btnRecall.style.display = "none";
+            ballsToFire = 0;
+
+            if (nextLaunchX === null) nextLaunchX = paddleX + paddleWidth / 2;
+
+            activeBalls.forEach(ball => {
+                if (!ball.isLanded) {
+                    ball.isRecalling = true;
+                    ball.recallDelay = 8; // 💡 공중에 멈칫! 하는 무중력 지연 프레임
+                    ball.recallSpeed = 1; // 💡 이후 폭발적으로 가속될 초기 속도
+                }
+            });
         }
 
         function drawPaddle() {
             ctx.beginPath();
-            ctx.roundRect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight, 5);
+            ctx.roundRect(paddleX, canvas.height - paddleHeight - 5, paddleWidth, paddleHeight, 5);
             ctx.fillStyle = "#e94560";
             ctx.fill();
             ctx.closePath();
         }
 
-        // 💡 조준선 반사 시뮬레이션 및 길이 대폭 연장
         function drawAimLine() {
             if (isAiming && aimVector.dy < 0) {
                 let sX = paddleX + paddleWidth / 2;
@@ -379,37 +382,44 @@
                 ctx.setLineDash([8, 8]);
                 ctx.moveTo(sX, sY);
 
-                let cX = sX;
-                let cY = sY;
-                let vX = aimVector.dx;
-                let vY = aimVector.dy;
-                let remainingDist = 2000; // 💡 궤적 길이 대폭 연장
+                let cX = sX, cY = sY;
+                let vX = aimVector.dx, vY = aimVector.dy;
+                let speed = Math.sqrt(vX*vX + vY*vY);
+                let nX = (vX / speed) * 8; 
+                let nY = (vY / speed) * 8;
                 
-                while(remainingDist > 0) {
-                    let tX = vX > 0 ? (canvas.width - ballRadius - cX) / vX : (ballRadius - cX) / vX;
-                    let tY = vY < 0 ? (ballRadius - cY) / vY : Infinity; 
+                let hitTarget = false;
+                
+                for(let i=0; i<200; i++) { 
+                    cX += nX; 
+                    cY += nY;
                     
-                    if (tX < 0) tX = Infinity;
-                    if (tY < 0) tY = Infinity;
-                    
-                    let t = Math.min(tX, tY);
-                    let distToWall = t * Math.sqrt(vX*vX + vY*vY);
-                    
-                    if (distToWall < remainingDist) {
-                        cX += vX * t;
-                        cY += vY * t;
-                        ctx.lineTo(cX, cY);
-                        remainingDist -= distToWall;
-                        
-                        if (t === tX) vX = -vX;
-                        else if (t === tY) vY = -vY;
-                    } else {
-                        let ratio = remainingDist / Math.sqrt(vX*vX + vY*vY);
-                        cX += vX * ratio;
-                        cY += vY * ratio;
-                        ctx.lineTo(cX, cY);
-                        remainingDist = 0;
+                    if (cX <= ballRadius || cX >= canvas.width - ballRadius) {
+                        nX = -nX; cX += nX; ctx.lineTo(cX, cY);
                     }
+                    if (cY <= ballRadius) {
+                        nY = -nY; cY += nY; ctx.lineTo(cX, cY);
+                    }
+                    
+                    for (let r = 0; r < grid.length; r++) {
+                        for (let c = 0; c < brickColumnCount; c++) {
+                            let b = grid[r][c];
+                            if (b.status === 1) {
+                                let brickX = (c * (b.w + brickPadding)) + brickPadding;
+                                let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
+                                
+                                if (cX + ballRadius > brickX && cX - ballRadius < brickX + b.w && 
+                                    cY + ballRadius > brickY && cY - ballRadius < brickY + b.h) {
+                                    hitTarget = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if(hitTarget) break;
+                    }
+                    
+                    ctx.lineTo(cX, cY);
+                    if(hitTarget) break; 
                 }
 
                 ctx.strokeStyle = "rgba(0, 210, 211, 0.8)";
@@ -426,33 +436,40 @@
                     let b = grid[r][c];
                     if (b.status === 1) {
                         let brickX = (c * (b.w + brickPadding)) + brickPadding;
-                        let brickY = (r * (b.h + brickPadding)) + brickOffsetTop;
-                        b.x = brickX;
-                        b.y = brickY;
+                        let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
                         
                         ctx.beginPath();
-                        ctx.roundRect(brickX, brickY, b.w, b.h, 4);
-                        ctx.fillStyle = hpColors[(b.hp - 1) % hpColors.length];
-                        ctx.fill();
                         
-                        ctx.fillStyle = "#fff";
-                        ctx.font = "bold 15px Arial";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillText(b.hp, brickX + b.w / 2, brickY + b.h / 2);
+                        if (b.isItem) {
+                            ctx.arc(brickX + b.w / 2, brickY + b.h / 2, b.h / 2, 0, Math.PI * 2);
+                            ctx.fillStyle = "#2ecc71";
+                            ctx.fill();
+                            ctx.fillStyle = "#fff";
+                            ctx.font = "bold 14px Arial";
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText("+5", brickX + b.w / 2, brickY + b.h / 2);
+                        } else {
+                            ctx.roundRect(brickX, brickY, b.w, b.h, 4);
+                            ctx.fillStyle = hpColors[(b.hp - 1) % hpColors.length];
+                            ctx.fill();
+                            ctx.fillStyle = "#fff";
+                            ctx.font = "bold 15px Arial";
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText(b.hp, brickX + b.w / 2, brickY + b.h / 2);
+                        }
                         ctx.closePath();
                     }
                 }
             }
         }
 
-        // 💡 대기 중인 공(장전된 공)과 날아다니는 공 렌더링
         function drawBalls() {
             ctx.shadowColor = "rgba(0, 210, 211, 0.5)";
             ctx.shadowBlur = 5;
             ctx.fillStyle = "#00d2d3";
 
-            // 필드 위의 공 렌더링
             activeBalls.forEach(ball => {
                 ctx.beginPath();
                 ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
@@ -461,7 +478,6 @@
             });
             ctx.shadowBlur = 0; 
 
-            // 장전 대기 중인 공을 중앙(또는 모인 지점)에 그리기
             if (gameState === 'ready' || ballsToFire > 0) {
                 let waitX = paddleX + paddleWidth / 2;
                 let waitY = canvas.height - paddleHeight - 15;
@@ -471,7 +487,6 @@
                 ctx.fill();
                 ctx.closePath();
                 
-                // 공 위에 남은 갯수 텍스트 표시
                 ctx.fillStyle = "#fff";
                 ctx.font = "bold 14px Arial";
                 ctx.textAlign = "center";
@@ -490,13 +505,12 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 💡 발사 로직
             if (gameState === 'shooting' && ballsToFire > 0) {
                 fireTimer += timeScale;
                 if (fireTimer > 3) { 
                     let startX = paddleX + paddleWidth / 2;
                     let startY = canvas.height - paddleHeight - 15;
-                    activeBalls.push({ x: startX, y: startY, dx: aimVector.dx, dy: aimVector.dy, isLanded: false });
+                    activeBalls.push({ x: startX, y: startY, dx: aimVector.dx, dy: aimVector.dy, isLanded: false, isRecalling: false });
                     ballsToFire--;
                     ballCountDisplay.innerText = ballsToFire;
                     fireTimer = 0;
@@ -505,73 +519,116 @@
                 gameState = 'playing'; 
             }
 
-            // 💡 고속 물리 계산 (터널링 방지를 위해 프레임을 2번 쪼개서 계산)
+            let groundY = canvas.height - paddleHeight - 10;
             let movingBallsCount = 0;
             
+            // 💡 고속 물리 계산 최적화 로직
             for (let step = 0; step < 2; step++) {
                 let subTimeScale = timeScale / 2;
 
                 for (let i = 0; i < activeBalls.length; i++) {
                     let ball = activeBalls[i];
 
-                    // 💡 바닥에 닿은 공들을 다음 턴 발사 지점(nextLaunchX)으로 부드럽게 모으기
+                    // 💡 지오메트리 대시 스타일 - 무중력 회수 애니메이션
+                    if (ball.isRecalling) {
+                        if (step === 0) movingBallsCount++;
+                        
+                        if (ball.recallDelay > 0) {
+                            // 공중에 붕 뜨는 무중력 연출 (속도 90% 감소)
+                            ball.x += ball.dx * 0.1 * subTimeScale;
+                            ball.y += ball.dy * 0.1 * subTimeScale;
+                            ball.recallDelay -= subTimeScale;
+                        } else {
+                            // 타겟으로 무서운 속도로 빨려 들어감
+                            let dx = nextLaunchX - ball.x;
+                            let dy = groundY - ball.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy);
+                            
+                            if (dist < 15) {
+                                ball.isLanded = true;
+                                ball.isRecalling = false;
+                                ball.x = nextLaunchX;
+                                ball.y = groundY;
+                            } else {
+                                ball.recallSpeed += 4.0 * subTimeScale; // 기하급수적 가속
+                                let moveDist = Math.min(ball.recallSpeed * subTimeScale, dist);
+                                ball.x += (dx / dist) * moveDist;
+                                ball.y += (dy / dist) * moveDist;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // 착륙한 공이 목표지점으로 스르륵 모이는 로직
                     if (ball.isLanded) {
-                        if (step === 0) { 
-                            if (Math.abs(ball.x - nextLaunchX) > 5) {
-                                ball.x += (nextLaunchX > ball.x ? 1 : -1) * 20 * subTimeScale;
+                        if (step === 0) {
+                            let slideDist = nextLaunchX - ball.x;
+                            if (Math.abs(slideDist) > 3) {
+                                ball.x += Math.sign(slideDist) * 15 * subTimeScale;
+                                movingBallsCount++;
                             } else {
                                 ball.x = nextLaunchX;
                             }
                         }
                         continue;
                     }
-
+                    
                     if (step === 0) movingBallsCount++;
-
                     ball.x += ball.dx * subTimeScale;
                     ball.y += ball.dy * subTimeScale;
 
-                    // 좌우 벽
                     if (ball.x < ballRadius) { ball.x = ballRadius; ball.dx = -ball.dx; }
                     if (ball.x > canvas.width - ballRadius) { ball.x = canvas.width - ballRadius; ball.dx = -ball.dx; }
-                    
-                    // 천장
                     if (ball.y < ballRadius) { ball.y = ballRadius; ball.dy = -ball.dy; }
                     
-                    // 💡 바닥 충돌 시 사라지지 않고 착륙 상태(isLanded)로 전환
-                    let groundY = canvas.height - paddleHeight - 15;
                     if (ball.y >= groundY) {
                         ball.y = groundY;
                         ball.isLanded = true;
-                        // 첫 번째로 닿은 공이 다음 턴의 위치 기준이 됨
-                        if (nextLaunchX === null) nextLaunchX = ball.x;
+                        if (nextLaunchX === null) nextLaunchX = ball.x; // 처음 닿은 위치 기억
                     }
 
-                    // 벽돌 충돌 로직
-                    if (!ball.isLanded) {
+                    if (!ball.isLanded && !ball.isRecalling) {
                         for (let r = 0; r < grid.length; r++) {
                             for (let c = 0; c < brickColumnCount; c++) {
                                 let b = grid[r][c];
                                 if (b.status === 1) {
-                                    if (ball.x + ballRadius > b.x && ball.x - ballRadius < b.x + b.w && 
-                                        ball.y + ballRadius > b.y && ball.y - ballRadius < b.y + b.h) {
+                                    let brickX = (c * (b.w + brickPadding)) + brickPadding;
+                                    let brickY = (r * (b.h + brickPadding)) + brickOffsetTop + dropOffset;
+
+                                    if (ball.x + ballRadius > brickX && ball.x - ballRadius < brickX + b.w && 
+                                        ball.y + ballRadius > brickY && ball.y - ballRadius < brickY + b.h) {
                                         
-                                        let overlapLeft = (ball.x + ballRadius) - b.x;
-                                        let overlapRight = (b.x + b.w) - (ball.x - ballRadius);
-                                        let overlapTop = (ball.y + ballRadius) - b.y;
-                                        let overlapBottom = (b.y + b.h) - (ball.y - ballRadius);
-
-                                        let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-
-                                        if (minOverlap === overlapLeft || minOverlap === overlapRight) {
-                                            ball.dx = -ball.dx; 
+                                        if (b.isItem) {
+                                            b.status = 0;
+                                            totalBalls += 5; 
+                                            score += 50;
                                         } else {
-                                            ball.dy = -ball.dy; 
+                                            // 💡 갇힘(Tunneling) 완벽 방지 보정 로직
+                                            let overlapLeft = (ball.x + ballRadius) - brickX;
+                                            let overlapRight = (brickX + b.w) - (ball.x - ballRadius);
+                                            let overlapTop = (ball.y + ballRadius) - brickY;
+                                            let overlapBottom = (brickY + b.h) - (ball.y - ballRadius);
+
+                                            let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                                            if (minOverlap === overlapLeft) {
+                                                ball.dx = -Math.abs(ball.dx); 
+                                                ball.x = brickX - ballRadius; 
+                                            } else if (minOverlap === overlapRight) {
+                                                ball.dx = Math.abs(ball.dx); 
+                                                ball.x = brickX + b.w + ballRadius; 
+                                            } else if (minOverlap === overlapTop) {
+                                                ball.dy = -Math.abs(ball.dy); 
+                                                ball.y = brickY - ballRadius; 
+                                            } else if (minOverlap === overlapBottom) {
+                                                ball.dy = Math.abs(ball.dy); 
+                                                ball.y = brickY + b.h + ballRadius; 
+                                            }
+                                            
+                                            b.hp -= 1; 
+                                            score += 2; 
+                                            if (b.hp <= 0) { b.status = 0; score += 10; }
                                         }
-                                        
-                                        b.hp -= 1; 
-                                        score += 2; 
-                                        if (b.hp <= 0) { b.status = 0; score += 10; }
                                     }
                                 }
                             }
@@ -582,33 +639,57 @@
 
             drawBricks();
             drawPaddle();
-            drawBalls();
             drawAimLine();
-
+            drawBalls();
+            
             scoreDisplay.innerText = score;
 
-            // 💡 모든 공이 발사되었고 착륙했으며, 모이기가 완료되면 턴 재장전
-            if (gameState === 'playing' && ballsToFire === 0 && movingBallsCount === 0) {
-                let allGathered = activeBalls.every(b => Math.abs(b.x - nextLaunchX) <= 5);
-                if (allGathered) {
-                    gameState = 'ready';
-                    btnRecall.style.display = "none";
-                    ballCountDisplay.innerText = totalBalls;
-                    
-                    // 패들을 모인 위치로 순간이동 (다음 조준/발사 기준점)
-                    paddleX = nextLaunchX - paddleWidth / 2;
-                    if (paddleX < 0) paddleX = 0;
-                    if (paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth;
+            // 💡 턴 종료 체크
+            let allGathered = true;
+            for(let i=0; i<activeBalls.length; i++) {
+                if (!activeBalls[i].isLanded || Math.abs(activeBalls[i].x - nextLaunchX) > 5) {
+                    allGathered = false; break;
+                }
+            }
 
-                    activeBalls = []; 
-                    nextLaunchX = null;
+            if ((gameState === 'playing' || gameState === 'recalling') && ballsToFire === 0 && allGathered) {
+                gameState = 'ready';
+                btnRecall.style.display = "none";
+                ballCountDisplay.innerText = totalBalls;
+                
+                paddleX = nextLaunchX - paddleWidth / 2;
+                if (paddleX < 0) paddleX = 0;
+                if (paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth;
+
+                activeBalls = []; 
+                nextLaunchX = null;
+
+                // 턴 종료 시 벽돌 한 칸 하강
+                dropOffset += brickHeight + brickPadding;
+
+                // 💡 해결된 오류: 하강 후 게임 오버 체크 시점에서의 참조 오류 수정
+                let isGameOver = false;
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < brickColumnCount; c++) {
+                        if (grid[r][c].status === 1) {
+                            let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+                            if (brickY + brickHeight >= canvas.height - paddleHeight - 20) {
+                                isGameOver = true;
+                            }
+                        }
+                    }
+                }
+                
+                if (isGameOver) {
+                    gameOver();
+                    return;
                 }
             }
 
             let bricksLeft = false;
             for (let r = 0; r < grid.length; r++) {
                 for (let c = 0; c < brickColumnCount; c++) {
-                    if (grid[r][c].status === 1) bricksLeft = true;
+                    if (grid[r][c].status === 1 && !grid[r][c].isItem) bricksLeft = true;
                 }
             }
 
@@ -625,7 +706,7 @@
                 return; 
             }
 
-            if (gameState !== 'cleared') {
+            if (gameState !== 'cleared' && gameState !== 'gameover') {
                 animationId = requestAnimationFrame(update);
             }
         }
@@ -633,16 +714,17 @@
         function startGame() {
             startScreen.style.display = "none";
             nextStageScreen.style.display = "none";
+            gameOverScreen.style.display = "none";
             btnRecall.style.display = "none";
             
             resizeCanvas();
-            
             stage = 1;
             score = 0;
             gameState = 'ready';
             activeBalls = [];
             ballsToFire = 0;
             nextLaunchX = null;
+            totalBalls = 30; 
             
             document.getElementById("stage-display").innerText = stage;
             ballCountDisplay.innerText = totalBalls;
@@ -669,6 +751,19 @@
             
             lastTime = 0;
             animationId = requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameState = 'gameover';
+            cancelAnimationFrame(animationId);
+            btnRecall.style.display = "none";
+            gameOverScreen.style.display = "flex";
+
+            if (score > stageHighScore) {
+                stageHighScore = score;
+                localStorage.setItem('brickStageHighScore', stageHighScore);
+                highScoreDisplay.innerText = stageHighScore;
+            }
         }
     </script>
 </body>
