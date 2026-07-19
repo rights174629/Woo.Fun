@@ -3,46 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>스네이크 게임</title>
+    <title>Woo.Fun - 스네이크 게임</title>
     <style>
-        body {
+        :root {
+            --bg-dark: #2c3e50;
+            --bg-header: #1e272e;
+            --vh: 1vh;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            background-color: #2c3e50;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
             color: #ecf0f1;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            height: calc(var(--vh, 1vh) * 100);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
             overflow: hidden;
             touch-action: none; 
         }
 
-        .back-btn {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            color: #fff;
-            text-decoration: none;
-            background: #34495e;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        /* 💡 첨부 이미지 스타일의 상단 고정 헤더 바 */
+        .header {
+            background-color: var(--bg-header);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
             z-index: 20;
+            flex-shrink: 0;
+            position: relative;
         }
 
+        /* 💡 아케이드 스타일 3D 입체 초록색 버튼 */
+        .arcade-btn {
+            color: #ffffff;
+            text-decoration: none;
+            background-color: #2ecc71;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #27ae60;
+            transition: background-color 0.1s, transform 0.1s, box-shadow 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            border: none;
+            white-space: nowrap;
+            z-index: 2;
+        }
+
+        .arcade-btn:hover {
+            background-color: #32d878;
+        }
+
+        .arcade-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #27ae60;
+        }
+
+        /* 💡 화면 정중앙 타이틀 (이모지 포함) */
+        .title-container {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #f1c40f;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 게임 메인 컨테이너 */
         #game-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
             height: 100%;
             position: relative;
-            justify-content: center; /* 💡 화면 중앙 정렬 */
+            justify-content: center;
+            padding: 10px 0;
         }
 
         #top-bar {
@@ -50,16 +116,15 @@
             max-width: 600px;
             display: flex;
             justify-content: space-between;
-            font-size: 24px; 
+            font-size: 22px; 
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             padding: 0 20px;
-            box-sizing: border-box;
         }
 
         canvas {
             background-color: #34495e;
-            box-shadow: 0 4px 25px rgba(0,0,0,0.5); /* 💡 그림자를 살짝 키워 입체감 부여 */
+            box-shadow: 0 4px 25px rgba(0,0,0,0.5);
             border-radius: 10px;
         }
 
@@ -126,15 +191,14 @@
         .btn-restart:active { transform: translateY(4px); box-shadow: 0 0 0 #c0392b; }
 
         #controls {
-            margin-top: 20px;
+            margin-top: 15px;
             display: grid;
-            grid-template-columns: 70px 70px 70px;
-            grid-template-rows: 70px 70px;
-            gap: 12px;
+            grid-template-columns: 65px 65px 65px;
+            grid-template-rows: 65px 65px;
+            gap: 10px;
             justify-content: center;
         }
 
-        /* 💡 반응형 디스플레이: PC 화면(넓이 768px 이상)에서는 터치패드를 아예 숨김 */
         @media (min-width: 768px) {
             #controls { display: none !important; }
         }
@@ -144,7 +208,7 @@
             color: white;
             border: none;
             border-radius: 15px;
-            font-size: 28px;
+            font-size: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -168,7 +232,17 @@
 </head>
 <body>
 
-    <a href="index.html" class="back-btn">◀ 메인으로</a>
+    <!-- 💡 첨부 이미지 스타일로 구성된 공통 상단 헤더 -->
+    <header class="header">
+        <a href="index.html" class="arcade-btn">◀ 메인으로</a>
+        
+        <div class="title-container">
+            <h1 class="title">🐍 스네이크 게임</h1>
+        </div>
+        
+        <!-- 오른쪽 여백 균형을 위한 투명 스페이서 -->
+        <div style="width: 80px;"></div>
+    </header>
 
     <div id="game-container">
         
@@ -256,18 +330,22 @@
         let timerInterval;
         let startTime = 0;
 
-        // 💡 화면 꽉 채우기의 핵심 로직 수정
-        function resizeCanvas() {
-            let isMobile = window.innerWidth < 768; // 모바일 여부 판별
-            let paddingWidth = 40; // 양옆 여백
-            
-            // PC면 상하단 여백만 조금 남기고, 모바일이면 컨트롤러(방향키) 공간을 위해 여백을 크게 확보
-            let paddingHeight = isMobile ? 300 : 120; 
+        // 모바일 주소창 높이 보정 (100dvh 대응)
+        function setScreenHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        window.addEventListener('resize', setScreenHeight);
+        setScreenHeight();
 
-            // 화면 가로/세로 중 더 작은 쪽에 맞춰서 최대한 캔버스를 키움
+        // 반응형 캔버스 크기 계산 (헤더 바 높이 고려)
+        function resizeCanvas() {
+            let isMobile = window.innerWidth < 768;
+            let paddingWidth = 40; 
+            // 헤더(60px) + 상단바 + 모바일 방향키 패드 높이를 감안한 여백 계산
+            let paddingHeight = isMobile ? 320 : 160; 
+
             let size = Math.min(window.innerWidth - paddingWidth, window.innerHeight - paddingHeight); 
-            
-            // 💡 문제의 원인이었던 'if (size > 500) size = 500;' 코드를 완전 삭제했습니다!
             
             gridSize = Math.floor(size / tileCount);
             canvas.width = gridSize * tileCount;
