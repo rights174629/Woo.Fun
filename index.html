@@ -106,6 +106,14 @@
             color: #f1c40f;
         }
 
+        .card-desc {
+            font-size: 15px;
+            color: #d1d8e0;
+            margin: 0 0 20px 0;
+            line-height: 1.5;
+            word-break: keep-all;
+        }
+
         .play-btn {
             display: block;
             text-align: center;
@@ -175,6 +183,7 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
+            <p class="card-desc">맵을 꽉 채우는 퍼펙트 클리어에 도전하세요!</p>
             <a href="snake.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
@@ -203,6 +212,7 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
+            <p class="card-desc">스테이지 클리어부터 숨 막히는 무한 생존 모드까지!</p>
             <a href="brick.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
@@ -231,6 +241,7 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
+            <p class="card-desc">점프와 급강하를 활용해 선인장과 익룡을 피하세요.</p>
             <a href="dinogame.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
@@ -260,6 +271,7 @@
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
+            <p class="card-desc">하늘에서 쏟아지는 똥과 파멸의 똥을 피해 살아남으세요!</p>
             <a href="poo.html" class="play-btn">게임 시작 🎮</a>
             
             <div class="card-details">
@@ -284,42 +296,12 @@
         <div class="game-card">
             <div class="card-header">
                 <div class="card-title-group">
-                    <span class="card-icon">🏎️</span>
-                    <h2 class="card-title">(공사중)</h2>
-                </div>
-                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
-            </div>
-            <a href="drivehtml" class="play-btn">게임 시작 🎮</a>
-            
-            <div class="card-details">
-                <div class="details-section">
-                    <h4>📜 게임 방식</h4>
-                    <ul>
-                        <li>무한으로 펼쳐지는 부드러운 3D 평면 도로를 질주하세요.</li>
-                        <li>도로를 벗어나도 걱정 마세요, 즉시 복귀할 수 있습니다!</li>
-                    </ul>
-                </div>
-                <div class="details-section">
-                    <h4>⌨️ 조작법</h4>
-                    <ul>
-                        <li><b>W / S :</b> 가속 / 후진</li>
-                        <li><b>A / D :</b> 좌 / 우 핸들링</li>
-                        <li><b>Space :</b> 브레이크</li>
-                        <li><b>R :</b> 도로 중앙으로 즉시 복귀</li>
-                        <li><b>P :</b> 헤드라이트 ON/OFF</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="game-card">
-            <div class="card-header">
-                <div class="card-title-group">
                     <span class="card-icon">📈</span>
                     <h2 class="card-title">그래프 계산기</h2>
                 </div>
                 <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
             </div>
+            <p class="card-desc">여러 개의 수식을 한눈에 비교하고 분석할 수 있는 그래프 계산기입니다.</p>
             <a href="graph.html" class="play-btn">계산기 실행 🎮</a>
             
             <div class="card-details">
@@ -337,6 +319,35 @@
                         <li><b>수식 추가 :</b> ➕ 버튼을 눌러 새 라인을 만들고 수식을 적으세요.</li>
                         <li><b>범위 조절 :</b> X 최소/최대 값을 변경하면 그래프가 실시간 변경됩니다.</li>
                         <li><b>수식 삭제 :</b> 칸 우측의 ✕ 버튼을 누르면 해당 그래프가 제거됩니다.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <span class="card-icon">🌀</span>
+                    <h2 class="card-title">최면</h2>
+                </div>
+                <button class="toggle-btn" onclick="toggleDetails(this)">▼</button>
+            </div>
+            <p class="card-desc">화려한 무지개빛 기하학적 착시 패턴을 감상해보세요.</p>
+            <a href="hypnosis.html" class="play-btn">체험 시작 🌀</a>
+            
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 체험 방식</h4>
+                    <ul>
+                        <li><b>다양한 모양:</b> 네모, 다이아몬드, 육각 입체(큐브), 트라이볼트(착시), 은하수(소용돌이) 등 5가지 패턴을 실시간으로 변경해보세요.</li>
+                        <li>하단 컨트롤러를 통해 회전 속도를 조절하거나 방향을 🔄 반전시킬 수 있습니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>중심점 이동:</b> 화면을 마우스로 드래그하거나 손가락으로 터치하여 슬라이드하세요.</li>
+                        <li><b>초기화:</b> 화면을 <b>더블클릭(더블탭)</b>하거나 우측 상단의 <b>'📍 원위치'</b> 버튼을 누르면 중심점이 정중앙으로 돌아옵니다.</li>
                     </ul>
                 </div>
             </div>
