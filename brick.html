@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🧱 벽돌 깨기 | Woo.Fun 레트로 아케이드</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            background-color: var(--bg-dark, #14131d);
+            color: var(--text-sub, #d5d9e2);
+            font-family: var(--font-sans, 'Pretendard', sans-serif);
+            overflow: hidden;
+            touch-action: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(241, 196, 15, 0.05) 0%, transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
+        }
+
+        #game-wrapper {
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 레트로 오락실 인게임 상단 HUD 전광판 */
+        #game-header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            box-sizing: border-box;
+            font-family: var(--font-pixel, monospace);
+            font-size: 14px;
+            font-weight: 800;
+            flex-shrink: 0;
+            background: #191826;
+            border-bottom: 2px solid var(--panel-border, #3b3955);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .high-score-text {
+            font-size: 11px;
+            color: var(--gold, #f1c40f);
+            margin-top: 3px;
+        }
+
+        .score-display {
+            font-size: 18px;
+            color: var(--green, #2ecc71);
+            text-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+        }
+
+        .time-display {
+            font-size: 12px;
+            color: var(--teal, #00cec9);
+            margin-top: 2px;
+        }
+
+        .btn-upgrade-sm {
+            background: linear-gradient(180deg, #f1c40f 0%, #d4ac0d 100%);
+            color: #1a1a1a;
+            border: 1px solid #f7dc6f;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-family: var(--font-pixel, monospace);
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 4px;
+            box-shadow: 0 3px 0 var(--gold-shadow, #b7950b);
+            transition: all 0.08s ease;
+        }
+
+        .btn-upgrade-sm:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            padding: 8px 10px 10px 10px;
+            box-sizing: border-box;
+        }
+
+        canvas {
+            background-color: #0f1019;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            border: 3px solid var(--panel-border, #3b3955);
+            touch-action: none;
+            display: block;
+        }
+
+        #btn-recall {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            padding: 10px 22px;
+            font-family: var(--font-pixel, monospace);
+            font-size: 14px;
+            font-weight: 900;
+            border: 1px solid #bb8fce;
+            border-radius: 20px;
+            box-shadow: 0 4px 0 #6c3483, 0 6px 14px rgba(155, 89, 182, 0.4);
+            cursor: pointer;
+            display: none;
+            z-index: 5;
+            transition: all 0.08s ease;
+        }
+
+        #btn-recall:active {
+            transform: translateX(-50%) translateY(3px);
+            box-shadow: 0 1px 0 #6c3483;
+        }
+
+        /* 레트로 오버레이 모달 */
+        .overlay-screen {
+            position: absolute;
+            inset: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(14, 13, 22, 0.94);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border: 2px solid var(--panel-border, #3b3955);
+            border-radius: 12px;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #upgrade-overlay {
+            position: absolute;
+            inset: 8px;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 20;
+            border-radius: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        #upgrade-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 오락실 상점 바텀시트 */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            background-color: #1e1d2c;
+            border-radius: 18px 18px 12px 12px;
+            padding: 24px 20px;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+            transform: translateY(150%);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 21;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 3px solid var(--panel-border, #3b3955);
+            border-bottom: none;
+        }
+
+        .bottom-sheet.show {
+            transform: translateY(0);
+        }
+
+        .stats-box {
+            background: #14131f;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+            color: #ecf0f1;
+            font-family: var(--font-pixel, monospace);
+            font-size: 14px;
+            line-height: 1.8;
+            border: 2px solid var(--panel-border, #3b3955);
+            min-width: 220px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* 3D 아케이드 버튼 통일 */
+        .btn {
+            background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 12px 28px;
+            font-family: var(--font-pixel, monospace);
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            border: 1px solid #ff7675;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 var(--red-shadow, #962d22), 0 8px 18px rgba(231, 76, 60, 0.3);
+            margin: 8px 5px;
+            min-width: 180px;
+            transition: all 0.08s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 0 var(--red-shadow, #962d22), 0 10px 22px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 var(--red-shadow, #962d22);
+        }
+
+        .btn-gold {
+            background: linear-gradient(180deg, #f1c40f 0%, #d4ac0d 100%);
+            color: #1a1a1a;
+            border-color: #f7dc6f;
+            box-shadow: 0 5px 0 var(--gold-shadow, #b7950b), 0 8px 18px rgba(241, 196, 15, 0.3);
+        }
+        .btn-gold:hover {
+            box-shadow: 0 6px 0 var(--gold-shadow, #b7950b), 0 10px 22px rgba(241, 196, 15, 0.4);
+        }
+        .btn-gold:active {
+            box-shadow: 0 1px 0 var(--gold-shadow, #b7950b);
+        }
+
+        .btn-buy {
+            background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+            color: #042211;
+            border: 1px solid #58d68d;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-family: var(--font-pixel, monospace);
+            font-weight: 900;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 0 var(--green-shadow, #1e8449);
+            transition: all 0.08s ease;
+            width: 85px;
+            text-align: center;
+        }
+
+        .btn-buy:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 var(--green-shadow, #1e8449);
+        }
+
+        .shop-item {
+            background: #14131f;
+            padding: 12px 18px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid var(--panel-border, #3b3955);
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#game-wrapper">게임 영역 바로가기</a>
+
+    <!-- 공통 레트로 아케이드 헤더 바 -->
+    <header class="arcade-header-bar" role="banner">
+        <div class="header-left">
+            <a href="index.html" class="btn-nav-hub" title="아케이드 허브 홈으로">
+                <span aria-hidden="true">◀</span> <span>HUB</span>
+            </a>
+        </div>
+        
+        <div class="title-container">
+            <h1 class="title">🧱 벽돌 깨기</h1>
+        </div>
+        
+        <div class="header-right">
+            <div class="hud-pill" title="오락실 모드">
+                <span class="hud-label">1P</span>
+                <span class="hud-val green">READY</span>
+            </div>
+        </div>
+    </header>
+
+    <main id="game-wrapper">
+        <div id="game-header">
+            <div class="header-group" style="align-items: flex-start;">
+                <span>STAGE: <span id="stage-display" style="color: var(--gold, #f1c40f);">1</span></span>
+                <span class="high-score-text">BEST: <span id="high-score">0</span></span>
+            </div>
+            <div class="header-group">
+                <span class="score-display">SCORE: <span id="score" aria-live="polite">0</span></span>
+                <span class="time-display">⏱ <span id="play-time">00:00</span></span>
+            </div>
+            <div class="header-group" style="align-items: flex-end;">
+                <span style="font-size: 14px; color: var(--gold, #f1c40f); font-weight: bold;">🪙 <span id="coin-display"
+                        aria-live="polite">0</span></span>
+                <button type="button" id="btn-open-upgrade" class="btn-upgrade-sm">⬆️ 상점</button>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="gameCanvas" role="img" aria-label="벽돌 깨기 게임 화면"></canvas>
+
+            <button type="button" id="btn-recall">⏬ 즉시회수</button>
+
+            <div id="upgrade-overlay" tabindex="-1"></div>
+            <div id="upgrade-panel" class="bottom-sheet" role="dialog" aria-modal="true" aria-label="업그레이드 상점">
+                <h2 style="font-family: var(--font-pixel, monospace); color: var(--gold, #f1c40f); margin: 0 0 10px 0; font-size: 22px;">⬆️ 업그레이드 상점</h2>
+                <p style="font-family: var(--font-pixel, monospace); font-size: 15px; margin-bottom: 12px; color: #ecf0f1;">보유 코인: <span id="upgrade-coin-display"
+                        style="color: var(--gold, #f1c40f); font-weight: bold; font-size: 20px;">0</span> 🪙</p>
+                <div id="upgrade-msg" role="status" aria-live="polite" style="color: var(--red, #e74c3c); font-size: 13px; min-height: 20px; font-weight: bold; margin-bottom: 10px;"></div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center;">
+                    <div class="shop-item">
+                        <div style="text-align: left;">
+                            <span style="font-family: var(--font-pixel, monospace); font-size: 16px; font-weight: bold; color: var(--teal, #00cec9);">공 +5 추가</span><br>
+                            <span style="font-size: 12px; color: #8e95a5;">현재 공: <span
+                                    id="upgrade-ball-display">30</span>개</span>
+                        </div>
+                        <button type="button" id="btn-buy-balls" class="btn-buy">10 🪙</button>
+                    </div>
+
+                    <div class="shop-item">
+                        <div style="text-align: left;">
+                            <span style="font-family: var(--font-pixel, monospace); font-size: 16px; font-weight: bold; color: var(--red, #e74c3c);">공 대미지 +1</span><br>
+                            <span style="font-size: 12px; color: #8e95a5;">현재 대미지: <span
+                                    id="upgrade-damage-display">1</span></span>
+                        </div>
+                        <button type="button" id="btn-buy-damage" class="btn-buy"
+                            style="background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%); color: #fff; box-shadow: 0 4px 0 #962d22;">20 🪙</button>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-close-upgrade" class="btn"
+                    style="background: #252336; border: 1px solid var(--panel-border); box-shadow: 0 4px 0 #13121d; color: #c4c7d0; margin-top: 22px; min-width: 130px; padding: 10px 20px;">닫기</button>
+            </div>
+
+            <div id="start-screen" class="overlay-screen">
+                <h2 style="font-family: var(--font-pixel, monospace); margin-bottom: 16px; color: #fff;">스테이지 벽돌 깨기!</h2>
+                <p style="font-family: var(--font-pixel, monospace); color: var(--teal, #00cec9); margin-bottom: 6px; font-size: 14px;">공을 당구처럼 조준해서 쏘세요.</p>
+                <p style="font-family: var(--font-pixel, monospace); color: var(--gold, #f1c40f); margin-bottom: 6px; font-size: 13px;">(코인을 모아 공과 공격력을 강화!)</p>
+                <p style="font-size: 13px; color: #8e95a5; margin-bottom: 22px;">(턴이 끝날 때마다 벽돌이 내려옵니다)</p>
+                <button type="button" id="btn-start-game" class="btn" style="background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); color: #042211; border-color: #58d68d; box-shadow: 0 5px 0 var(--green-shadow, #1e8449);">🎯 게임 시작</button>
+            </div>
+
+            <div id="next-stage-screen" class="overlay-screen" style="display: none;">
+                <h2 style="font-family: var(--font-pixel, monospace); color: var(--gold, #f1c40f); margin-bottom: 10px; font-size: 26px;">STAGE CLEAR!</h2>
+                <p style="font-size: 14px; color: #ecf0f1; margin-bottom: 5px;">다음 스테이지로 이동합니다.</p>
+                <p style="font-family: var(--font-pixel, monospace); color: var(--green, #2ecc71); margin-bottom: 22px; font-weight: bold;">보상: +1 코인 🪙</p>
+                <button type="button" id="btn-next-stage" class="btn btn-gold">다음 도전 ⏩</button>
+            </div>
+
+            <div id="game-over-screen" class="overlay-screen" style="display: none;">
+                <h2
+                    style="color: #e74c3c; margin-bottom: 10px; font-size: 36px; text-shadow: 0 4px 10px rgba(231,76,60,0.5);">
+                    GAME OVER</h2>
+
+                <div class="stats-box">
+                    • 생존 시간 : <span id="final-time" style="color: #f1c40f; font-weight: bold;">00:00</span><br>
+                    • 현재 점수 : <span id="final-score" style="color: #2ecc71; font-weight: bold;">0</span> 점<br>
+                    • 최고 점수 : <span id="final-highscore" style="color: #00d2d3; font-weight: bold;">0</span> 점
+                </div>
+
+                <button type="button" id="btn-restart-game" class="btn">다시 시작</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const scoreDisplay = document.getElementById("score");
+        const highScoreDisplay = document.getElementById("high-score");
+        const playTimeDisplay = document.getElementById("play-time");
+        const coinDisplay = document.getElementById("coin-display");
+
+        const startScreen = document.getElementById("start-screen");
+        const nextStageScreen = document.getElementById("next-stage-screen");
+        const gameOverScreen = document.getElementById("game-over-screen");
+        const btnRecall = document.getElementById("btn-recall");
+        const upgradeOverlay = document.getElementById("upgrade-overlay");
+        const upgradePanel = document.getElementById("upgrade-panel");
+
+        const safeStorage = {
+            get(key, fallback = 0) {
+                try {
+                    const val = localStorage.getItem(key);
+                    return val !== null ? (parseInt(val, 10) || fallback) : fallback;
+                } catch (e) {
+                    return fallback;
+                }
+            },
+            set(key, val) {
+                try {
+                    localStorage.setItem(key, val);
+                } catch (e) { }
+            }
+        };
+
+        let stageHighScore = safeStorage.get('brickStageHighScore', 0);
+        highScoreDisplay.innerText = stageHighScore;
+
+        let baseBalls = safeStorage.get('brickBaseBalls', 30);
+        let coins = safeStorage.get('brickCoins', 0);
+        let ballDamage = safeStorage.get('brickBallDamage', 1); // 💡 대미지 변수 추가
+        coinDisplay.innerText = coins;
+
+        let animationId;
+        let gameState = 'ready';
+        let score = 0;
+        let stage = 1;
+        let playTime = 0;
+
+        let paddleHeight = 15;
+        let paddleWidth = 80;
+        let paddleX = 0;
+        let nextLaunchX = null;
+
+        let totalBalls = baseBalls;
+        let ballsToFire = 0;
+        let fireTimer = 0;
+        let activeBalls = [];
+        let ballRadius = 6;
+        let baseSpeed = 27.0;
+
+        let isAiming = false;
+        let aimVector = { dx: 0, dy: 0 };
+        let mousePos = { x: 0, y: 0 };
+
+        let brickColumnCount = 7;
+        let brickRowCount = 6;
+        let totalRowsFit = 14;
+
+        let brickPadding = 5;
+        let brickOffsetTop = 20;
+        let brickHeight = 35;
+        let grid = [];
+        let dropOffset = 0;
+
+        const hpColors = ["#4cd137", "#00a8ff", "#9c88ff", "#fbc531", "#e84118", "#e1b12c", "#c23616", "#2f3640", "#ff0000", "#000000"];
+
+        function resizeCanvas() {
+            const container = document.getElementById("canvas-container");
+            const headerObj = document.querySelector("header");
+            const gameHeaderObj = document.getElementById("game-header");
+
+            let availableHeight = window.innerHeight - headerObj.offsetHeight - gameHeaderObj.offsetHeight - 20;
+            let oldWidth = canvas.width || (container.clientWidth - 20);
+            canvas.width = container.clientWidth - 20;
+            canvas.height = availableHeight;
+
+            let playableHeight = canvas.height - paddleHeight - 20 - brickOffsetTop;
+            brickHeight = (playableHeight / totalRowsFit) - brickPadding;
+
+            let currentBrickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
+            if (grid && grid.length > 0) {
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < brickColumnCount; c++) {
+                        if (grid[r] && grid[r][c]) {
+                            grid[r][c].w = currentBrickWidth;
+                            grid[r][c].h = brickHeight;
+                        }
+                    }
+                }
+            }
+
+            if (gameState === 'ready' && nextLaunchX === null) {
+                paddleX = (canvas.width - paddleWidth) / 2;
+            } else {
+                paddleX = Math.min(Math.max(0, paddleX), Math.max(0, canvas.width - paddleWidth));
+            }
+
+            if (nextLaunchX !== null) {
+                if (oldWidth > 0 && oldWidth !== canvas.width) {
+                    nextLaunchX = (nextLaunchX / oldWidth) * canvas.width;
+                }
+                nextLaunchX = Math.min(Math.max(ballRadius, nextLaunchX), canvas.width - ballRadius);
+            }
+
+            if (activeBalls && activeBalls.length > 0) {
+                activeBalls.forEach(ball => {
+                    if (oldWidth > 0 && oldWidth !== canvas.width) {
+                        ball.x = (ball.x / oldWidth) * canvas.width;
+                    }
+                    ball.x = Math.min(Math.max(ballRadius, ball.x), canvas.width - ballRadius);
+                });
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let upgradeMsgTimer = null;
+        function showUpgradeMessage(msg, isSuccess = false) {
+            const el = document.getElementById('upgrade-msg');
+            if (el) {
+                el.style.color = isSuccess ? '#2ecc71' : '#e74c3c';
+                el.innerText = msg;
+                clearTimeout(upgradeMsgTimer);
+                upgradeMsgTimer = setTimeout(() => { el.innerText = ''; }, 2500);
+            }
+        }
+
+        function toggleUpgradeMenu() {
+            if (upgradePanel.classList.contains('show')) {
+                upgradePanel.classList.remove('show');
+                upgradeOverlay.classList.remove('show');
+            } else {
+                document.getElementById('upgrade-coin-display').innerText = coins;
+                document.getElementById('upgrade-ball-display').innerText = baseBalls;
+                document.getElementById('upgrade-damage-display').innerText = ballDamage;
+                const msgEl = document.getElementById('upgrade-msg');
+                if (msgEl) msgEl.innerText = '';
+                upgradePanel.classList.add('show');
+                upgradeOverlay.classList.add('show');
+            }
+        }
+
+        function buyBalls() {
+            if (coins >= 10) {
+                coins -= 10;
+                baseBalls += 5;
+                totalBalls += 5;
+
+                safeStorage.set('brickCoins', coins);
+                safeStorage.set('brickBaseBalls', baseBalls);
+
+                coinDisplay.innerText = coins;
+                document.getElementById('upgrade-coin-display').innerText = coins;
+                document.getElementById('upgrade-ball-display').innerText = baseBalls;
+                showUpgradeMessage("공 +5 업그레이드 완료!", true);
+            } else {
+                showUpgradeMessage("코인이 부족합니다! (10코인 필요)", false);
+            }
+        }
+
+        // 💡 대미지 업그레이드 함수
+        function buyDamage() {
+            if (coins >= 20) {
+                coins -= 20;
+                ballDamage += 1;
+
+                safeStorage.set('brickCoins', coins);
+                safeStorage.set('brickBallDamage', ballDamage);
+
+                coinDisplay.innerText = coins;
+                document.getElementById('upgrade-coin-display').innerText = coins;
+                document.getElementById('upgrade-damage-display').innerText = ballDamage;
+                showUpgradeMessage("공 대미지 +1 업그레이드 완료!", true);
+            } else {
+                showUpgradeMessage("코인이 부족합니다! (20코인 필요)", false);
+            }
+        }
+
+        function initGrid() {
+            grid = [];
+            dropOffset = 0;
+            let maxHp = Math.min(5 + stage * 3, 100);
+
+            // 💡 60% 확률로 최소 1개 ~ 최대 3개의 코인 생성 로직
+            let coinPositions = [];
+            if (Math.random() < 0.60) {
+                let numCoins = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+                for (let i = 0; i < numCoins; i++) {
+                    let r = Math.floor(Math.random() * brickRowCount);
+                    let c = Math.floor(Math.random() * brickColumnCount);
+
+                    // 위치 중복 방지
+                    if (!coinPositions.some(p => p.r === r && p.c === c)) {
+                        coinPositions.push({ r, c });
+                    } else {
+                        i--; // 중복되면 다시 뽑기
+                    }
+                }
+            }
+
+            for (let r = 0; r < brickRowCount; r++) {
+                let row = [];
+                let brickWidth = (canvas.width - (brickPadding * (brickColumnCount + 1))) / brickColumnCount;
+
+                for (let c = 0; c < brickColumnCount; c++) {
+                    let isCoin = coinPositions.some(pos => pos.r === r && pos.c === c);
+
+                    if (isCoin) {
+                        row.push({ status: 1, hp: 1, w: brickWidth, h: brickHeight, isItem: true });
+                        continue;
+                    }
+
+                    let rand = Math.random();
+                    if (rand < 0.15 && r !== 0) {
+                        row.push({ status: 0, hp: 0, w: brickWidth, h: brickHeight, isItem: false });
+                    } else {
+                        let randomHp = Math.floor(Math.random() * (maxHp - 5 + 1)) + 5;
+                        row.push({ status: 1, hp: randomHp, w: brickWidth, h: brickHeight, isItem: false });
+                    }
+                }
+                grid.push(row);
+            }
+        }
+
+        function handlePointerDown(e) {
+            if (gameState !== 'ready' || upgradePanel.classList.contains('show')) return;
+            isAiming = true;
+            updateAim(e);
+        }
+
+        function handlePointerMove(e) {
+            if (!isAiming) return;
+            updateAim(e);
+        }
+
+        function handlePointerUp(e) {
+            if (!isAiming) return;
+            isAiming = false;
+
+            if (aimVector.dy < 0) {
+                gameState = 'shooting';
+                ballsToFire = totalBalls;
+                fireTimer = 0;
+                nextLaunchX = null;
+                btnRecall.style.display = "block";
+            }
+        }
+
+        function updateAim(e) {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            mousePos.x = (clientX - rect.left) * (canvas.width / rect.width);
+            mousePos.y = (clientY - rect.top) * (canvas.height / rect.height);
+
+            let startX = paddleX + paddleWidth / 2;
+            let startY = canvas.height - paddleHeight - ballRadius - 5;
+
+            let dx = mousePos.x - startX;
+            let dy = mousePos.y - startY;
+
+            if (dy > -10) dy = -10;
+            let dist = Math.hypot(dx, dy) || 1;
+
+            aimVector.dx = (dx / dist) * baseSpeed;
+            aimVector.dy = (dy / dist) * baseSpeed;
+        }
+
+        canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
+        canvas.addEventListener("pointermove", handlePointerMove, { passive: false });
+        window.addEventListener("pointerup", handlePointerUp, { passive: false });
+        canvas.addEventListener("touchstart", (e) => {
+            if (!upgradePanel.classList.contains('show')) e.preventDefault();
+        }, { passive: false });
+
+        function recallBalls() {
+            if (gameState === 'ready' || gameState === 'recalling') return;
+            gameState = 'recalling';
+            btnRecall.style.display = "none";
+            ballsToFire = 0;
+
+            if (nextLaunchX === null) nextLaunchX = paddleX + paddleWidth / 2;
+
+            activeBalls.forEach(ball => {
+                if (!ball.isLanded) {
+                    ball.isRecalling = true;
+                    ball.recallDelay = 8;
+                    ball.recallSpeed = 1;
+                }
+            });
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.roundRect(paddleX, canvas.height - paddleHeight - 5, paddleWidth, paddleHeight, 5);
+            ctx.fillStyle = "#e94560";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawDeathLine() {
+            let deathY = canvas.height - paddleHeight - 20;
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, deathY);
+            ctx.lineTo(canvas.width, deathY);
+            ctx.strokeStyle = "rgba(231, 76, 60, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.closePath();
+        }
+
+        function drawAimLine() {
+            if (isAiming && aimVector.dy < 0) {
+                let sX = paddleX + paddleWidth / 2;
+                let sY = canvas.height - paddleHeight - 15;
+
+                ctx.beginPath();
+                ctx.setLineDash([8, 8]);
+                ctx.moveTo(sX, sY);
+
+                let cX = sX, cY = sY;
+                let vX = aimVector.dx, vY = aimVector.dy;
+                let speed = Math.sqrt(vX * vX + vY * vY);
+                let nX = (vX / speed) * 8;
+                let nY = (vY / speed) * 8;
+
+                let hitTarget = false;
+
+                for (let i = 0; i < 200; i++) {
+                    cX += nX;
+                    cY += nY;
+
+                    if (cX <= ballRadius || cX >= canvas.width - ballRadius) {
+                        nX = -nX; cX += nX; ctx.lineTo(cX, cY);
+                    }
+                    if (cY <= ballRadius) {
+                        nY = -nY; cY += nY; ctx.lineTo(cX, cY);
+                    }
+
+                    for (let r = 0; r < grid.length; r++) {
+                        for (let c = 0; c < brickColumnCount; c++) {
+                            let b = grid[r][c];
+                            if (b.status === 1) {
+                                let brickX = (c * (b.w + brickPadding)) + brickPadding;
+                                let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+
+                                if (cX + ballRadius > brickX && cX - ballRadius < brickX + b.w &&
+                                    cY + ballRadius > brickY && cY - ballRadius < brickY + brickHeight) {
+                                    hitTarget = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (hitTarget) break;
+                    }
+
+                    ctx.lineTo(cX, cY);
+                    if (hitTarget) break;
+                }
+
+                ctx.strokeStyle = "rgba(0, 210, 211, 0.8)";
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.closePath();
+            }
+        }
+
+        function drawBricks() {
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < brickColumnCount; c++) {
+                    let b = grid[r][c];
+                    if (b.status === 1) {
+                        let brickX = (c * (b.w + brickPadding)) + brickPadding;
+                        let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+
+                        ctx.beginPath();
+
+                        if (b.isItem) {
+                            ctx.arc(brickX + b.w / 2, brickY + brickHeight / 2, Math.min(b.w, brickHeight) / 2 - 2, 0, Math.PI * 2);
+                            ctx.fillStyle = "#f1c40f";
+                            ctx.fill();
+                            ctx.fillStyle = "#d35400";
+                            ctx.font = "bold 16px Arial";
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText("C", brickX + b.w / 2, brickY + brickHeight / 2 + 1);
+                        } else {
+                            ctx.roundRect(brickX, brickY, b.w, brickHeight, 4);
+                            ctx.fillStyle = hpColors[(b.hp - 1) % hpColors.length];
+                            ctx.fill();
+                            ctx.fillStyle = "#fff";
+                            ctx.font = "bold 15px Arial";
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText(b.hp, brickX + b.w / 2, brickY + brickHeight / 2);
+                        }
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+
+        function drawBalls() {
+            ctx.shadowColor = "rgba(0, 210, 211, 0.5)";
+            ctx.shadowBlur = 5;
+            ctx.fillStyle = "#00d2d3";
+
+            activeBalls.forEach(ball => {
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+            });
+            ctx.shadowBlur = 0;
+
+            if (gameState === 'ready' || ballsToFire > 0) {
+                let waitX = paddleX + paddleWidth / 2;
+                let waitY = canvas.height - paddleHeight - 15;
+
+                ctx.beginPath();
+                ctx.arc(waitX, waitY, ballRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 14px Arial";
+                ctx.textAlign = "center";
+                // 패들 위 텍스트는 플레이를 위해 유지
+                ctx.fillText("x" + (gameState === 'ready' ? totalBalls : ballsToFire), waitX, waitY - 15);
+            }
+        }
+
+        let lastTime = 0;
+        function update(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            let deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            let timeScale = deltaTime / (1000 / 60);
+            if (timeScale > 3) timeScale = 1;
+
+            if (gameState === 'playing' || gameState === 'shooting' || gameState === 'ready' || gameState === 'recalling') {
+                playTime += deltaTime / 1000;
+                let m = Math.floor(playTime / 60).toString().padStart(2, '0');
+                let s = Math.floor(playTime % 60).toString().padStart(2, '0');
+                playTimeDisplay.innerText = `${m}:${s}`;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'shooting' && ballsToFire > 0) {
+                fireTimer += timeScale;
+                if (fireTimer > 3) {
+                    let startX = paddleX + paddleWidth / 2;
+                    let startY = canvas.height - paddleHeight - 15;
+                    activeBalls.push({ x: startX, y: startY, dx: aimVector.dx, dy: aimVector.dy, isLanded: false, isRecalling: false });
+                    ballsToFire--;
+                    fireTimer = 0;
+                }
+            } else if (gameState === 'shooting' && ballsToFire === 0) {
+                gameState = 'playing';
+            }
+
+            let groundY = canvas.height - paddleHeight - 10;
+            let movingBallsCount = 0;
+
+            // 💡 터널링 및 다중 충돌 방지: 프레임 드랍/속도에 맞춘 동적 서브스텝 (각 스텝당 이동거리가 공 반지름 이하가 되도록 분할)
+            let speedMag = Math.hypot(baseSpeed, baseSpeed);
+            let numSteps = Math.max(2, Math.min(6, Math.ceil((speedMag * timeScale) / (ballRadius * 1.5))));
+            let subTimeScale = timeScale / numSteps;
+
+            for (let step = 0; step < numSteps; step++) {
+
+                for (let i = 0; i < activeBalls.length; i++) {
+                    let ball = activeBalls[i];
+
+                    if (ball.isRecalling) {
+                        if (step === 0) movingBallsCount++;
+
+                        if (ball.recallDelay > 0) {
+                            ball.x += ball.dx * 0.1 * subTimeScale;
+                            ball.y += ball.dy * 0.1 * subTimeScale;
+                            ball.recallDelay -= subTimeScale;
+                        } else {
+                            let dx = nextLaunchX - ball.x;
+                            let dy = groundY - ball.y;
+                            let dist = Math.sqrt(dx * dx + dy * dy);
+
+                            if (dist < 15) {
+                                ball.isLanded = true;
+                                ball.isRecalling = false;
+                                ball.x = nextLaunchX;
+                                ball.y = groundY;
+                            } else {
+                                ball.recallSpeed += 4.0 * subTimeScale;
+                                let moveDist = Math.min(ball.recallSpeed * subTimeScale, dist);
+                                ball.x += (dx / dist) * moveDist;
+                                ball.y += (dy / dist) * moveDist;
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (ball.isLanded) {
+                        if (step === 0) {
+                            let slideDist = nextLaunchX - ball.x;
+                            if (Math.abs(slideDist) > 3) {
+                                ball.x += Math.sign(slideDist) * 15 * subTimeScale;
+                                movingBallsCount++;
+                            } else {
+                                ball.x = nextLaunchX;
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (step === 0) movingBallsCount++;
+                    ball.x += ball.dx * subTimeScale;
+                    ball.y += ball.dy * subTimeScale;
+
+                    if (ball.x < ballRadius) { ball.x = ballRadius; ball.dx = -ball.dx; }
+                    if (ball.x > canvas.width - ballRadius) { ball.x = canvas.width - ballRadius; ball.dx = -ball.dx; }
+                    if (ball.y < ballRadius) { ball.y = ballRadius; ball.dy = -ball.dy; }
+
+                    if (ball.y >= groundY) {
+                        ball.y = groundY;
+                        ball.isLanded = true;
+                        if (nextLaunchX === null) nextLaunchX = ball.x;
+                    }
+
+                    if (!ball.isLanded && !ball.isRecalling) {
+                        let collided = false;
+                        for (let r = 0; r < grid.length; r++) {
+                            for (let c = 0; c < brickColumnCount; c++) {
+                                let b = grid[r][c];
+                                if (b.status === 1) {
+                                    let brickX = (c * (b.w + brickPadding)) + brickPadding;
+                                    let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+
+                                    if (ball.x + ballRadius > brickX && ball.x - ballRadius < brickX + b.w &&
+                                        ball.y + ballRadius > brickY && ball.y - ballRadius < brickY + brickHeight) {
+
+                                        if (b.isItem) {
+                                            b.status = 0;
+                                            coins += 1;
+                                            safeStorage.set('brickCoins', coins);
+                                            coinDisplay.innerText = coins;
+                                            score += 50;
+                                        } else {
+                                            let overlapLeft = (ball.x + ballRadius) - brickX;
+                                            let overlapRight = (brickX + b.w) - (ball.x - ballRadius);
+                                            let overlapTop = (ball.y + ballRadius) - brickY;
+                                            let overlapBottom = (brickY + brickHeight) - (ball.y - ballRadius);
+
+                                            let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                                            if (minOverlap === overlapLeft) {
+                                                ball.dx = -Math.abs(ball.dx);
+                                                ball.x = brickX - ballRadius;
+                                            } else if (minOverlap === overlapRight) {
+                                                ball.dx = Math.abs(ball.dx);
+                                                ball.x = brickX + b.w + ballRadius;
+                                            } else if (minOverlap === overlapTop) {
+                                                ball.dy = -Math.abs(ball.dy);
+                                                ball.y = brickY - ballRadius;
+                                            } else if (minOverlap === overlapBottom) {
+                                                ball.dy = Math.abs(ball.dy);
+                                                ball.y = brickY + brickHeight + ballRadius;
+                                            }
+
+                                            // 💡 업그레이드 된 대미지 적용
+                                            b.hp -= ballDamage;
+                                            score += 2;
+                                            if (b.hp <= 0) { b.status = 0; score += 10; }
+                                        }
+                                        collided = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (collided) break;
+                        }
+                    }
+                }
+            }
+
+            drawDeathLine();
+            drawBricks();
+            drawPaddle();
+            drawAimLine();
+            drawBalls();
+
+            scoreDisplay.innerText = score;
+
+            let allGathered = true;
+            for (let i = 0; i < activeBalls.length; i++) {
+                if (!activeBalls[i].isLanded || Math.abs(activeBalls[i].x - nextLaunchX) > 5) {
+                    allGathered = false; break;
+                }
+            }
+
+            if ((gameState === 'playing' || gameState === 'recalling') && ballsToFire === 0 && allGathered) {
+                gameState = 'ready';
+                btnRecall.style.display = "none";
+
+                paddleX = nextLaunchX - paddleWidth / 2;
+                if (paddleX < 0) paddleX = 0;
+                if (paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth;
+
+                activeBalls = [];
+                nextLaunchX = null;
+
+                dropOffset += brickHeight + brickPadding;
+
+                let isGameOver = false;
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < brickColumnCount; c++) {
+                        if (grid[r][c].status === 1) {
+                            let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop + dropOffset;
+                            if (brickY + brickHeight >= canvas.height - paddleHeight - 20) {
+                                isGameOver = true;
+                            }
+                        }
+                    }
+                }
+
+                if (isGameOver) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            let bricksLeft = false;
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < brickColumnCount; c++) {
+                    if (grid[r][c].status === 1 && !grid[r][c].isItem) bricksLeft = true;
+                }
+            }
+
+            if (!bricksLeft && gameState === 'ready') {
+                gameState = 'cleared';
+                btnRecall.style.display = "none";
+                nextStageScreen.style.display = "flex";
+
+                coins += 1;
+                safeStorage.set('brickCoins', coins);
+                coinDisplay.innerText = coins;
+
+                if (score > stageHighScore) {
+                    stageHighScore = score;
+                    safeStorage.set('brickStageHighScore', stageHighScore);
+                    highScoreDisplay.innerText = stageHighScore;
+                }
+                return;
+            }
+
+            if (gameState !== 'cleared' && gameState !== 'gameover') {
+                animationId = requestAnimationFrame(update);
+            }
+        }
+
+        function startGame() {
+            startScreen.style.display = "none";
+            nextStageScreen.style.display = "none";
+            gameOverScreen.style.display = "none";
+            btnRecall.style.display = "none";
+            upgradePanel.classList.remove('show');
+            upgradeOverlay.classList.remove('show');
+
+            resizeCanvas();
+            stage = 1;
+            score = 0;
+            playTime = 0;
+            gameState = 'ready';
+            activeBalls = [];
+            ballsToFire = 0;
+            nextLaunchX = null;
+
+            totalBalls = baseBalls;
+
+            document.getElementById("stage-display").innerText = stage;
+            playTimeDisplay.innerText = "00:00";
+
+            initGrid();
+
+            lastTime = 0;
+            cancelAnimationFrame(animationId);
+            animationId = requestAnimationFrame(update);
+        }
+
+        function nextStage() {
+            nextStageScreen.style.display = "none";
+            stage += 1;
+            document.getElementById("stage-display").innerText = stage;
+
+            gameState = 'ready';
+            activeBalls = [];
+            ballsToFire = 0;
+            nextLaunchX = null;
+
+            initGrid();
+
+            lastTime = 0;
+            animationId = requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameState = 'gameover';
+            cancelAnimationFrame(animationId);
+            btnRecall.style.display = "none";
+
+            if (score > stageHighScore) {
+                stageHighScore = score;
+                safeStorage.set('brickStageHighScore', stageHighScore);
+                highScoreDisplay.innerText = stageHighScore;
+            }
+
+            document.getElementById("final-time").innerText = playTimeDisplay.innerText;
+            document.getElementById("final-score").innerText = score;
+            document.getElementById("final-highscore").innerText = stageHighScore;
+
+            gameOverScreen.style.display = "flex";
+        }
+
+        document.getElementById("btn-open-upgrade").addEventListener("click", toggleUpgradeMenu);
+        document.getElementById("btn-recall").addEventListener("click", recallBalls);
+        document.getElementById("upgrade-overlay").addEventListener("click", toggleUpgradeMenu);
+        document.getElementById("btn-buy-balls").addEventListener("click", buyBalls);
+        document.getElementById("btn-buy-damage").addEventListener("click", buyDamage);
+        document.getElementById("btn-close-upgrade").addEventListener("click", toggleUpgradeMenu);
+        document.getElementById("btn-start-game").addEventListener("click", startGame);
+        document.getElementById("btn-next-stage").addEventListener("click", nextStage);
+        document.getElementById("btn-restart-game").addEventListener("click", startGame);
+
+        window.addEventListener('blur', () => {
+            isAiming = false;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>🏎️ STEEL RACER: NEON CIRCUIT</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    /* ==========================================================================
+       1. 전역 리셋 & 뷰포트 레이아웃 (100dvh & Letterbox / Pillarbox)
+       ========================================================================== */
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff0077;
+      --neon-yellow: #ffe600;
+      --neon-green: #00ff88;
+      --bg-dark: #070a14;
+      --panel-glass: rgba(12, 18, 34, 0.88);
+      --border-glow: rgba(0, 243, 255, 0.35);
+      --font-arcade: 'Courier New', Courier, monospace;
+      --font-ui: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      font-family: var(--font-ui);
+      color: #ffffff;
+      touch-action: none;
+      overscroll-behavior: none;
+      position: fixed;
+    }
+
+    /* 메인 뷰포트 컨테이너 */
+    #viewport-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      background-color: #03050a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 960x540 고정 가상 해상도 래퍼 */
+    #canvas-wrapper {
+      position: absolute;
+      width: 960px;
+      height: 540px;
+      transform-origin: 0 0;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 243, 255, 0.15);
+      background-color: #0d121d;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      width: 960px;
+      height: 540px;
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+
+    /* ==========================================================================
+       2. 상단 올인원 헤더 바 (모든 HUD 통합: 트랙 가림 100% 방지)
+       ========================================================================== */
+    .header-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 44px;
+      background: rgba(7, 11, 22, 0.94);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 40;
+      pointer-events: auto;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-nav:hover {
+      background: rgba(0, 243, 255, 0.2);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+      transform: translateY(-1px);
+    }
+    .btn-nav:active {
+      transform: translateY(1px);
+    }
+
+    /* 인라인 HUD 캡슐 */
+    .hud-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .hud-label {
+      color: #94a3b8;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .hud-val {
+      font-family: var(--font-arcade);
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+    .highlight-gold {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 6px rgba(255, 230, 0, 0.5);
+    }
+    .highlight-cyan {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px rgba(0, 243, 255, 0.6);
+    }
+
+    /* 헤더 중앙부: 속도계 & 니트로 게이지 */
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-speed-box {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      border-radius: 6px;
+      padding: 2px 10px;
+    }
+    .speed-num {
+      font-family: var(--font-arcade);
+      font-size: 20px;
+      font-weight: 900;
+      font-style: italic;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan);
+      min-width: 36px;
+      text-align: right;
+      line-height: 1.1;
+    }
+    .speed-unit {
+      font-size: 10px;
+      font-weight: 800;
+      color: #94a3b8;
+    }
+
+    .hud-nitro-box {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100px;
+    }
+    .nitro-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--neon-yellow);
+      letter-spacing: 0.5px;
+    }
+    .nitro-bar-track {
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .nitro-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff0077, #00f3ff);
+      box-shadow: 0 0 6px var(--neon-cyan);
+      transition: width 0.1s linear;
+    }
+
+    /* 헤더 우측부: 액션 버튼 */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-icon:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 243, 255, 0.15);
+    }
+
+    /* 알림 토스트 배너 */
+    #hud-toast {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.85);
+      padding: 6px 20px;
+      border-radius: 16px;
+      background: rgba(4, 8, 18, 0.88);
+      border: 1px solid var(--neon-cyan);
+      font-family: var(--font-arcade);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px var(--neon-yellow);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+      z-index: 30;
+      backdrop-filter: blur(8px);
+    }
+    #hud-toast.active {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    /* ==========================================================================
+       3. 모바일 온스크린 가상 조작 패드 (간결한 4버튼)
+       ========================================================================== */
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    .touch-btn {
+      position: absolute;
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 2px solid rgba(0, 243, 255, 0.4);
+      border-radius: 50%;
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
+    }
+    .touch-btn:active, .touch-btn.pressed {
+      background: rgba(0, 243, 255, 0.35);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px var(--neon-cyan);
+      transform: scale(0.92);
+    }
+
+    #btn-left {
+      bottom: 22px;
+      left: 20px;
+      width: 72px;
+      height: 72px;
+    }
+    #btn-right {
+      bottom: 22px;
+      left: 104px;
+      width: 72px;
+      height: 72px;
+    }
+
+    #btn-gas {
+      bottom: 60px;
+      right: 24px;
+      width: 78px;
+      height: 78px;
+      border-color: rgba(0, 255, 136, 0.5);
+      color: var(--neon-green);
+    }
+    #btn-gas:active, #btn-gas.pressed {
+      background: rgba(0, 255, 136, 0.35);
+      border-color: var(--neon-green);
+      box-shadow: 0 0 16px var(--neon-green);
+    }
+
+    #btn-brake {
+      bottom: 12px;
+      right: 24px;
+      width: 78px;
+      height: 42px;
+      border-radius: 14px;
+      border-color: rgba(255, 0, 119, 0.5);
+      color: var(--neon-pink);
+      font-size: 14px;
+    }
+    #btn-brake:active, #btn-brake.pressed {
+      background: rgba(255, 0, 119, 0.35);
+      border-color: var(--neon-pink);
+      box-shadow: 0 0 16px var(--neon-pink);
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      #mobile-controls {
+        display: block;
+      }
+    }
+
+    /* ==========================================================================
+       4. 상태 오버레이 (시작 메뉴, 트랙 선택기, 카운트다운, 모달)
+       ========================================================================== */
+    .overlay-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 7, 16, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 20px;
+      text-align: center;
+    }
+    .overlay-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: rgba(14, 21, 38, 0.95);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 35px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.1);
+      border-radius: 20px;
+      padding: 22px 28px;
+      max-width: 550px;
+      width: 94%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-title {
+      font-family: var(--font-arcade);
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px var(--neon-cyan);
+    }
+    .modal-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    /* 트랙 선택기 스타일 */
+    .track-select-box {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(5, 8, 16, 0.7);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .track-select-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--neon-yellow);
+      letter-spacing: 1px;
+      text-align: left;
+    }
+    .track-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .track-tab-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 6px 3px;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      transition: all 0.15s ease;
+    }
+    .track-tab-btn:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 243, 255, 0.1);
+      color: #fff;
+    }
+    .track-tab-btn.active {
+      background: rgba(0, 243, 255, 0.2);
+      border-color: var(--neon-cyan);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+    }
+    .tab-badge {
+      font-family: var(--font-arcade);
+      font-size: 9.5px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+    }
+    .tab-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .tab-diff {
+      font-size: 8px;
+      color: #f1c40f;
+    }
+
+    .controls-help-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      width: 100%;
+      background: rgba(5, 8, 16, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 11.5px;
+      text-align: left;
+    }
+    .help-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .key-badge {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: var(--neon-yellow);
+      font-family: var(--font-arcade);
+      font-weight: bold;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10.5px;
+    }
+
+    .btn-action-primary {
+      background: linear-gradient(135deg, #00f3ff, #0077ff);
+      border: none;
+      color: #040814;
+      font-family: var(--font-arcade);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      padding: 10px 36px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      margin-top: 2px;
+    }
+    .btn-action-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.9);
+    }
+    .btn-action-primary:active {
+      transform: scale(0.96);
+    }
+
+    .btn-action-secondary {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-action-secondary:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: #94a3b8;
+    }
+
+    /* 카운트다운 디스플레이 */
+    #countdown-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 45;
+    }
+    .countdown-text {
+      font-family: var(--font-arcade);
+      font-size: 96px;
+      font-weight: 900;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 30px var(--neon-yellow), 0 0 60px rgba(255, 230, 0, 0.6);
+      transform: scale(0.5);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+    }
+    .countdown-text.pop {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 메인 뷰포트 컨테이너 -->
+  <div id="viewport-container">
+    <div id="canvas-wrapper">
+      <!-- 메인 게임 렌더링 캔버스 -->
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <header class="header-bar">
+        <div class="header-left">
+          <a href="index.html" class="btn-nav btn-nav-hub" id="btn-back" title="아케이드 허브 홈으로">
+            <span aria-hidden="true">◀</span> <span>HUB</span>
+          </a>
+          <!-- 트랙 변경 퀵 뱃지 -->
+          <div class="hud-pill" id="hud-track-pill" style="cursor: pointer;" title="클릭 시 트랙 변경">
+            <span class="hud-label">TRK</span>
+            <span class="hud-val highlight-gold" id="hud-track-name">1.그랑프리</span>
+          </div>
+          <div class="hud-pill">
+            <span class="hud-label">LAP</span>
+            <span class="hud-val highlight-gold" id="hud-lap">1 / 3</span>
+          </div>
+          <div class="hud-pill">
+            <span class="hud-label">TIME</span>
+            <span class="hud-val highlight-cyan" id="hud-time">00:00.00</span>
+          </div>
+          <div class="hud-pill">
+            <span class="hud-label">BEST</span>
+            <span class="hud-val" id="hud-best">--:--.--</span>
+          </div>
+          <div class="hud-pill">
+            <span class="hud-val highlight-gold" id="hud-coins">🪙 0</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="hud-speed-box">
+            <span class="speed-num" id="hud-speed">0</span>
+            <span class="speed-unit">KM/H</span>
+          </div>
+          <div class="hud-nitro-box">
+            <div class="nitro-top">
+              <span>NITRO</span>
+              <span id="hud-nitro-status">READY</span>
+            </div>
+            <div class="nitro-bar-track">
+              <div class="nitro-bar-fill" id="hud-nitro-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="btn-icon" id="btn-sound" title="소리 켜기/끄기" aria-label="사운드 토글">🔊</button>
+          <button type="button" class="btn-icon" id="btn-pause" title="일시정지" aria-label="게임 일시정지">⏸️</button>
+          <button type="button" class="btn-icon" id="btn-restart" title="재시작" aria-label="게임 재시작">🔄</button>
+        </div>
+      </header>
+
+      <!-- 알림 토스트 배너 -->
+      <div id="hud-toast">BOOST ACTIVATED!</div>
+
+      <!-- 모바일 가상 조작 버튼 (4버튼) -->
+      <div id="mobile-controls">
+        <button type="button" class="touch-btn" id="btn-left" aria-label="좌측 조향">◀</button>
+        <button type="button" class="touch-btn" id="btn-right" aria-label="우측 조향">▶</button>
+        <button type="button" class="touch-btn" id="btn-gas" aria-label="가속 페달">▲</button>
+        <button type="button" class="touch-btn" id="btn-brake" aria-label="브레이크/후진">▼</button>
+      </div>
+
+      <!-- 카운트다운 레이어 -->
+      <div id="countdown-overlay">
+        <div class="countdown-text" id="countdown-val">3</div>
+      </div>
+
+      <!-- 1. 타이틀 메뉴 & 트랙 선택 모달 -->
+      <div class="overlay-modal active" id="modal-title">
+        <div class="modal-card">
+          <div class="modal-title">🏁 STEEL RACER</div>
+          <div class="modal-subtitle">
+            네오 아케이드 감성의 2D 탑다운 서킷 레이싱!<br>
+            원하는 트랙을 선택하고 코인을 수집해 니트로 부스트를 터뜨리세요!
+          </div>
+
+          <!-- 서킷 트랙 선택기 -->
+          <div class="track-select-box">
+            <div class="track-select-title">SELECT CIRCUIT TRACK:</div>
+            <div class="track-tabs">
+              <button type="button" class="track-tab-btn active" data-track="0">
+                <span class="tab-badge">TRK 1</span>
+                <span class="tab-name">네온 그랑프리</span>
+                <span class="tab-diff">★ NORMAL</span>
+              </button>
+              <button type="button" class="track-tab-btn" data-track="1">
+                <span class="tab-badge">TRK 2</span>
+                <span class="tab-name">선셋 스피드</span>
+                <span class="tab-diff">★★ FAST</span>
+              </button>
+              <button type="button" class="track-tab-btn" data-track="2">
+                <span class="tab-badge">TRK 3</span>
+                <span class="tab-name">에이펙스 산</span>
+                <span class="tab-diff">★★★ HARD</span>
+              </button>
+              <button type="button" class="track-tab-btn" data-track="3">
+                <span class="tab-badge">TRK 4</span>
+                <span class="tab-name">사이버 시케인</span>
+                <span class="tab-diff">★★★ ADV</span>
+              </button>
+              <button type="button" class="track-tab-btn" data-track="4">
+                <span class="tab-badge">TRK 5</span>
+                <span class="tab-name">볼케이노 서킷</span>
+                <span class="tab-diff">★★★★ EXTREME</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="controls-help-grid">
+            <div class="help-row"><span class="key-badge">W / ↑</span> 가속 (Gas)</div>
+            <div class="help-row"><span class="key-badge">S / ↓ / Space</span> 브레이크 / 후진</div>
+            <div class="help-row"><span class="key-badge">A / D / ← →</span> 좌우 조향 (Steer)</div>
+            <div class="help-row"><span class="key-badge">R</span> 도로 복귀 (Reset)</div>
+            <div class="help-row"><span class="key-badge">P / Esc</span> 일시정지 (Pause)</div>
+            <div class="help-row"><span class="key-badge">🪙 코인</span> 니트로 부스트 +40%</div>
+          </div>
+
+          <div style="font-size: 13px; color: var(--neon-yellow);">
+            🏆 선택 트랙 최고 기록: <span id="title-best-record">--:--.--</span>
+          </div>
+
+          <button type="button" class="btn-action-primary" id="btn-start-race">START RACE</button>
+        </div>
+      </div>
+
+      <!-- 2. 일시정지 모달 -->
+      <div class="overlay-modal" id="modal-pause">
+        <div class="modal-card">
+          <div class="modal-title">PAUSED</div>
+          <div class="modal-subtitle">레이스가 일시 중단되었습니다.</div>
+          <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <button type="button" class="btn-action-primary" id="btn-resume">RESUME</button>
+            <button type="button" class="btn-action-secondary" id="btn-restart-modal">RESTART</button>
+            <button type="button" class="btn-action-secondary" id="btn-change-track-pause">트랙 변경</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 완주 승리 모달 -->
+      <div class="overlay-modal" id="modal-finish">
+        <div class="modal-card">
+          <div class="modal-title" style="color: var(--neon-yellow);">🏆 RACE FINISHED!</div>
+          <div class="modal-subtitle"><span id="finish-track-title" style="color: var(--neon-cyan); font-weight: bold;"></span> 3랩 완주 성공!</div>
+
+          <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-arcade); font-size: 16px;">
+              <span style="color: #94a3b8;">TOTAL TIME:</span>
+              <span style="color: var(--neon-cyan); font-weight: bold;" id="finish-total-time">00:00.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-arcade); font-size: 16px;">
+              <span style="color: #94a3b8;">BEST LAP:</span>
+              <span style="color: var(--neon-yellow); font-weight: bold;" id="finish-best-lap">00:00.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-arcade); font-size: 16px;">
+              <span style="color: #94a3b8;">COINS COLLECTED:</span>
+              <span style="color: #ffd700; font-weight: bold;" id="finish-coins">🪙 0</span>
+            </div>
+          </div>
+
+          <div id="finish-new-record" style="display: none; color: var(--neon-pink); font-weight: bold; font-size: 14px; text-shadow: 0 0 10px var(--neon-pink);">
+            ★ NEW CIRCUIT RECORD! ★
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 6px;">
+            <button type="button" class="btn-action-primary" id="btn-play-again">RETRY</button>
+            <button type="button" class="btn-action-secondary" id="btn-change-track-finish">트랙 선택</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       5. 게임 메인 스크립트 (3종 서킷 엔진, 고정 60Hz 물리, 오프스크린 캐싱)
+       ========================================================================== -->
+  <script>
+    // --- 1. 상수 및 상태 정의 ---
+    const VIRTUAL_WIDTH = 960;
+    const VIRTUAL_HEIGHT = 540;
+    const FIXED_STEP = 1 / 60; // 60Hz 결정론적 물리
+    const MAX_ACCUMULATOR = 0.1;
+    const TOTAL_LAPS = 3;
+
+    const GameState = {
+      MENU: 'MENU',
+      COUNTDOWN: 'COUNTDOWN',
+      RACING: 'RACING',
+      PAUSED: 'PAUSED',
+      FINISHED: 'FINISHED'
+    };
+    let currentState = GameState.MENU;
+
+    const PHYSICS = {
+      MAX_SPEED: 440,
+      BOOST_SPEED: 600,
+      REVERSE_MAX: 130,
+      ACCEL: 380,
+      BRAKE_FORCE: 580,
+      ROLLING_FRICTION: 0.985,
+      TURN_SPEED: 3.5,
+      LATERAL_FRICTION: 0.95,
+      OFFROAD_PENALTY: 0.42,
+      WALL_BOUNCE_DAMP: 0.45
+    };
+
+    // --- 2. 뷰포트 & 레터박스 자동 스케일러 ---
+    const canvasWrapper = document.getElementById('canvas-wrapper');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d', { alpha: false });
+
+    function resizeViewport() {
+      const winW = window.innerWidth;
+      const winH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const scale = Math.min(winW / VIRTUAL_WIDTH, winH / VIRTUAL_HEIGHT);
+      
+      canvasWrapper.style.transform = `scale(${scale})`;
+      canvasWrapper.style.left = `${(winW - VIRTUAL_WIDTH * scale) / 2}px`;
+      canvasWrapper.style.top = `${(winH - VIRTUAL_HEIGHT * scale) / 2}px`;
+    }
+    window.addEventListener('resize', resizeViewport);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resizeViewport);
+    }
+    resizeViewport();
+
+    // 모바일 터치 감지
+    const mobileControlsEl = document.getElementById('mobile-controls');
+    function enableMobileControlsIfNeeded() {
+      mobileControlsEl.style.display = 'block';
+    }
+    window.addEventListener('touchstart', enableMobileControlsIfNeeded, { once: true, passive: true });
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') enableMobileControlsIfNeeded();
+    }, { once: true, passive: true });
+
+    // --- 3. 통합 입력 상태 및 포인터 고착 방어 ---
+    const inputState = {
+      up: false,
+      down: false,
+      left: false,
+      right: false
+    };
+
+    function resetInputs() {
+      inputState.up = false;
+      inputState.down = false;
+      inputState.left = false;
+      inputState.right = false;
+      document.querySelectorAll('.touch-btn').forEach(btn => btn.classList.remove('pressed'));
+    }
+    window.addEventListener('blur', resetInputs);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        resetInputs();
+        if (currentState === GameState.RACING) transitionTo(GameState.PAUSED);
+        muteAudio();
+      } else {
+        unmuteAudioIfNeeded();
+      }
+    });
+
+    // 키보드 조작
+    window.addEventListener('keydown', (e) => {
+      initAudioOnFirstInteraction();
+      const code = e.code;
+      if (code === 'KeyW' || code === 'ArrowUp') { inputState.up = true; e.preventDefault(); }
+      if (code === 'KeyS' || code === 'ArrowDown' || code === 'Space') { inputState.down = true; e.preventDefault(); }
+      if (code === 'KeyA' || code === 'ArrowLeft') { inputState.left = true; e.preventDefault(); }
+      if (code === 'KeyD' || code === 'ArrowRight') { inputState.right = true; e.preventDefault(); }
+      if (code === 'KeyR') { respawnVehicleOnTrack(); e.preventDefault(); }
+      if (code === 'KeyP' || code === 'Escape') { togglePause(); e.preventDefault(); }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const code = e.code;
+      if (code === 'KeyW' || code === 'ArrowUp') inputState.up = false;
+      if (code === 'KeyS' || code === 'ArrowDown' || code === 'Space') inputState.down = false;
+      if (code === 'KeyA' || code === 'ArrowLeft') inputState.left = false;
+      if (code === 'KeyD' || code === 'ArrowRight') inputState.right = false;
+    });
+
+    // 가상 버튼 바인딩
+    function bindVirtualButton(btnId, actionKey) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      let trackedPointerId = null;
+
+      const handlePress = (e) => {
+        e.preventDefault();
+        initAudioOnFirstInteraction();
+        trackedPointerId = e.pointerId;
+        inputState[actionKey] = true;
+        btn.classList.add('pressed');
+        if (navigator.vibrate) navigator.vibrate(12);
+      };
+
+      const handleRelease = (e) => {
+        if (trackedPointerId !== null && e.pointerId === trackedPointerId) {
+          trackedPointerId = null;
+          inputState[actionKey] = false;
+          btn.classList.remove('pressed');
+        }
+      };
+
+      btn.addEventListener('pointerdown', handlePress);
+      btn.addEventListener('pointerup', handleRelease);
+      btn.addEventListener('pointercancel', handleRelease);
+      btn.addEventListener('pointerleave', handleRelease);
+    }
+
+    bindVirtualButton('btn-left', 'left');
+    bindVirtualButton('btn-right', 'right');
+    bindVirtualButton('btn-gas', 'up');
+    bindVirtualButton('btn-brake', 'down');
+
+    window.addEventListener('pointerup', () => {
+      if (!document.querySelector('.touch-btn:active')) {
+        document.querySelectorAll('.touch-btn').forEach(btn => btn.classList.remove('pressed'));
+      }
+    });
+
+    // --- 4. Web Audio API 절차적 사운드 ---
+    let audioCtx = null;
+    let isMuted = false;
+    let masterGain = null;
+    let engineOsc = null;
+    let engineGain = null;
+    let engineFilter = null;
+
+    function initAudioOnFirstInteraction() {
+      if (audioCtx) {
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        return;
+      }
+      try {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioClass) return;
+        audioCtx = new AudioClass();
+
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(isMuted ? 0 : 0.65, audioCtx.currentTime);
+        masterGain.connect(audioCtx.destination);
+
+        engineOsc = audioCtx.createOscillator();
+        engineOsc.type = 'sawtooth';
+        engineOsc.frequency.setValueAtTime(55, audioCtx.currentTime);
+
+        engineFilter = audioCtx.createBiquadFilter();
+        engineFilter.type = 'lowpass';
+        engineFilter.frequency.setValueAtTime(380, audioCtx.currentTime);
+
+        engineGain = audioCtx.createGain();
+        engineGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+
+        engineOsc.connect(engineFilter);
+        engineFilter.connect(engineGain);
+        engineGain.connect(masterGain);
+        engineOsc.start();
+      } catch (err) {
+        console.warn('AudioContext init error:', err);
+      }
+    }
+
+    function setAudioGainSmooth(gainNode, targetVal, duration = 0.05) {
+      if (!gainNode || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const safeTarget = Math.max(targetVal, 0.0001);
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.exponentialRampToValueAtTime(safeTarget, now + duration);
+    }
+
+    function playTone(freq, duration = 0.1, type = 'sine', vol = 0.3) {
+      if (!audioCtx || isMuted) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(g);
+        g.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playCoinSound() {
+      if (!audioCtx || isMuted) return;
+      playTone(1318, 0.12, 'sine', 0.28);
+      setTimeout(() => playTone(1975, 0.2, 'sine', 0.32), 70);
+    }
+
+    function playCheckpointSound() {
+      playTone(880, 0.07, 'sine', 0.22);
+    }
+
+    function playLapFanfare() {
+      const chords = [523, 659, 783, 1046];
+      chords.forEach((f, idx) => {
+        setTimeout(() => playTone(f, 0.22, 'triangle', 0.35), idx * 80);
+      });
+    }
+
+    function playWallCrashSound() {
+      playTone(90, 0.18, 'sawtooth', 0.4);
+    }
+
+    function playCountdownTone(isFinal = false) {
+      playTone(isFinal ? 880 : 440, isFinal ? 0.35 : 0.15, isFinal ? 'triangle' : 'sine', 0.4);
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      if (masterGain && audioCtx) {
+        masterGain.gain.setValueAtTime(isMuted ? 0 : 0.65, audioCtx.currentTime);
+      }
+      document.getElementById('btn-sound').textContent = isMuted ? '🔇' : '🔊';
+    }
+    function muteAudio() {
+      if (masterGain && audioCtx) masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
+    function unmuteAudioIfNeeded() {
+      if (masterGain && audioCtx && !isMuted) masterGain.gain.setValueAtTime(0.65, audioCtx.currentTime);
+    }
+    document.getElementById('btn-sound').addEventListener('click', toggleMute);
+
+    // --- 5. 다중 서킷 트랙 시스템 (3종 독창적 레이아웃) ---
+    const TRACK_WIDTH = 76;
+    const CURB_WIDTH = 8;
+
+    const TRACK_CONFIGS = [
+      {
+        id: 0,
+        badgeName: '1.그랑프리',
+        fullName: '네온 그랑프리',
+        storageKey: 'steel_racer_best_trk0',
+        curbColor1: '#ff1e56',
+        curbColor2: '#ffffff',
+        lineColor: 'rgba(0, 243, 255, 0.7)',
+        coinIndices: [18, 50, 82, 114, 146, 178, 210, 242],
+        waypoints: [
+          { x: 480, y: 472 }, // 스타트/피니시 (하단 직선)
+          { x: 670, y: 472 },
+          { x: 810, y: 445 },
+          { x: 875, y: 350 },
+          { x: 865, y: 220 },
+          { x: 765, y: 135 },
+          { x: 640, y: 205 },
+          { x: 500, y: 245 },
+          { x: 380, y: 165 },
+          { x: 280, y: 110 }, // 상단 여백 보장 (y >= 110)
+          { x: 145, y: 115 },
+          { x: 92, y: 235 },
+          { x: 105, y: 375 },
+          { x: 230, y: 472 }
+        ]
+      },
+      {
+        id: 1,
+        badgeName: '2.스피드웨이',
+        fullName: '선셋 스피드웨이',
+        storageKey: 'steel_racer_best_trk1',
+        curbColor1: '#ff7700',
+        curbColor2: '#ffe600',
+        lineColor: 'rgba(255, 170, 0, 0.8)',
+        coinIndices: [20, 55, 90, 125, 160, 195, 230],
+        waypoints: [
+          { x: 480, y: 472 },
+          { x: 710, y: 472 },
+          { x: 840, y: 415 },
+          { x: 880, y: 290 }, // 우측 대회전 코너
+          { x: 840, y: 165 },
+          { x: 710, y: 115 },
+          { x: 480, y: 115 }, // 상단 초고속 직선
+          { x: 250, y: 115 },
+          { x: 120, y: 165 },
+          { x: 80, y: 290 },  // 좌측 대회전 코너
+          { x: 120, y: 415 },
+          { x: 250, y: 472 }
+        ]
+      },
+      {
+        id: 2,
+        badgeName: '3.마운틴',
+        fullName: '에이펙스 마운틴',
+        storageKey: 'steel_racer_best_trk2',
+        curbColor1: '#00ff88',
+        curbColor2: '#b800ff',
+        lineColor: 'rgba(0, 255, 136, 0.8)',
+        coinIndices: [16, 45, 78, 110, 142, 175, 208, 240],
+        waypoints: [
+          { x: 480, y: 472 },
+          { x: 650, y: 472 },
+          { x: 770, y: 430 },
+          { x: 865, y: 340 },
+          { x: 780, y: 250 }, // 테크니컬 인코너
+          { x: 860, y: 160 },
+          { x: 720, y: 115 },
+          { x: 580, y: 180 }, // 중앙 내리막
+          { x: 480, y: 125 }, // 헤어핀
+          { x: 380, y: 210 }, // S자 전환
+          { x: 260, y: 115 },
+          { x: 120, y: 160 },
+          { x: 88, y: 290 },
+          { x: 160, y: 375 },
+          { x: 95, y: 445 },
+          { x: 260, y: 472 }
+        ]
+      },
+      {
+        id: 3,
+        badgeName: '4.시케인',
+        fullName: '사이버 시케인',
+        storageKey: 'steel_racer_best_trk3',
+        curbColor1: '#ff007f',
+        curbColor2: '#39ff14',
+        lineColor: 'rgba(255, 0, 127, 0.85)',
+        coinIndices: [18, 52, 85, 120, 155, 188, 222],
+        waypoints: [
+          { x: 480, y: 472 }, // 스타트/피니시
+          { x: 720, y: 472 },
+          { x: 860, y: 430 },
+          { x: 860, y: 290 },
+          { x: 750, y: 240 }, // 시케인 인코너
+          { x: 840, y: 170 }, // 시케인 탈출
+          { x: 740, y: 115 },
+          { x: 570, y: 115 }, // 상단 고속 직선
+          { x: 480, y: 190 }, // 중앙 테크니컬 헤어핀 에이펙스
+          { x: 380, y: 115 },
+          { x: 180, y: 115 }, // 서북부 대회전
+          { x: 92, y: 230 },
+          { x: 120, y: 380 },
+          { x: 260, y: 472 }
+        ]
+      },
+      {
+        id: 4,
+        badgeName: '5.볼케이노',
+        fullName: '볼케이노 서킷',
+        storageKey: 'steel_racer_best_trk4',
+        curbColor1: '#ff2200',
+        curbColor2: '#ffbb00',
+        lineColor: 'rgba(255, 68, 0, 0.9)',
+        coinIndices: [15, 48, 80, 115, 150, 182, 215, 245],
+        waypoints: [
+          { x: 480, y: 472 }, // 스타트/피니시
+          { x: 700, y: 472 },
+          { x: 840, y: 440 },
+          { x: 875, y: 320 },
+          { x: 780, y: 260 }, // 용암 스위치백
+          { x: 670, y: 310 },
+          { x: 600, y: 200 }, // 분화구 중앙 급상승
+          { x: 720, y: 120 },
+          { x: 520, y: 112 }, // 북부 능선 직선
+          { x: 380, y: 150 },
+          { x: 260, y: 115 },
+          { x: 100, y: 150 }, // 절벽 급코너
+          { x: 90, y: 300 },
+          { x: 190, y: 390 }, // 회수 완충 코너
+          { x: 250, y: 472 }
+        ]
+      }
+    ];
+
+    let currentTrackIdx = 0;
+    let trackPoints = [];
+    let checkpoints = [];
+    let coins = [];
+    let offscreenTrackCanvas = null;
+
+    function generateSmoothCircuit(waypoints, samples = 260) {
+      const points = [];
+      const n = waypoints.length;
+      for (let i = 0; i < samples; i++) {
+        const t = (i / samples) * n;
+        const p1_idx = Math.floor(t) % n;
+        const p0_idx = (p1_idx - 1 + n) % n;
+        const p2_idx = (p1_idx + 1) % n;
+        const p3_idx = (p1_idx + 2) % n;
+        const mu = t - Math.floor(t);
+
+        const p0 = waypoints[p0_idx];
+        const p1 = waypoints[p1_idx];
+        const p2 = waypoints[p2_idx];
+        const p3 = waypoints[p3_idx];
+
+        const mu2 = mu * mu;
+        const mu3 = mu2 * mu;
+
+        const a0 = -0.5 * mu3 + mu2 - 0.5 * mu;
+        const a1 =  1.5 * mu3 - 2.5 * mu2 + 1.0;
+        const a2 = -1.5 * mu3 + 2.0 * mu2 + 0.5 * mu;
+        const a3 =  0.5 * mu3 - 0.5 * mu2;
+
+        const x = a0 * p0.x + a1 * p1.x + a2 * p2.x + a3 * p3.x;
+        const y = a0 * p0.y + a1 * p1.y + a2 * p2.y + a3 * p3.y;
+        points.push({ x, y });
+      }
+
+      for (let i = 0; i < points.length; i++) {
+        const next = points[(i + 1) % points.length];
+        const prev = points[(i - 1 + points.length) % points.length];
+        const dx = next.x - prev.x;
+        const dy = next.y - prev.y;
+        const len = Math.hypot(dx, dy) || 1;
+        points[i].tx = dx / len;
+        points[i].ty = dy / len;
+        points[i].nx = -points[i].ty;
+        points[i].ny = points[i].tx;
+      }
+      return points;
+    }
+
+    function buildOffscreenTrackForConfig(cfg) {
+      const cvs = document.createElement('canvas');
+      cvs.width = VIRTUAL_WIDTH;
+      cvs.height = VIRTUAL_HEIGHT;
+      const oCtx = cvs.getContext('2d');
+
+      // 다크 그리드 배경
+      oCtx.fillStyle = '#070d18';
+      oCtx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+      oCtx.strokeStyle = 'rgba(0, 243, 255, 0.035)';
+      oCtx.lineWidth = 1;
+      for (let x = 0; x < VIRTUAL_WIDTH; x += 30) {
+        oCtx.beginPath();
+        oCtx.moveTo(x, 0);
+        oCtx.lineTo(x, VIRTUAL_HEIGHT);
+        oCtx.stroke();
+      }
+      for (let y = 0; y < VIRTUAL_HEIGHT; y += 30) {
+        oCtx.beginPath();
+        oCtx.moveTo(0, y);
+        oCtx.lineTo(VIRTUAL_WIDTH, y);
+        oCtx.stroke();
+      }
+
+      oCtx.fillStyle = 'rgba(0, 255, 136, 0.04)';
+      for (let i = 0; i < 400; i++) {
+        const rx = (i * 97) % VIRTUAL_WIDTH;
+        const ry = (i * 131) % VIRTUAL_HEIGHT;
+        oCtx.fillRect(rx, ry, 3, 3);
+      }
+
+      // 외부 체커 연석
+      const pts = trackPoints;
+      const totalPts = pts.length;
+      oCtx.lineWidth = CURB_WIDTH;
+      for (let i = 0; i < totalPts; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % totalPts];
+        const isC1 = Math.floor(i / 3) % 2 === 0;
+        oCtx.strokeStyle = isC1 ? cfg.curbColor1 : cfg.curbColor2;
+
+        oCtx.beginPath();
+        oCtx.moveTo(p1.x - p1.nx * (TRACK_WIDTH / 2 + CURB_WIDTH / 2), p1.y - p1.ny * (TRACK_WIDTH / 2 + CURB_WIDTH / 2));
+        oCtx.lineTo(p2.x - p2.nx * (TRACK_WIDTH / 2 + CURB_WIDTH / 2), p2.y - p2.ny * (TRACK_WIDTH / 2 + CURB_WIDTH / 2));
+        oCtx.stroke();
+
+        oCtx.beginPath();
+        oCtx.moveTo(p1.x + p1.nx * (TRACK_WIDTH / 2 + CURB_WIDTH / 2), p1.y + p1.ny * (TRACK_WIDTH / 2 + CURB_WIDTH / 2));
+        oCtx.lineTo(p2.x + p2.nx * (TRACK_WIDTH / 2 + CURB_WIDTH / 2), p2.y + p2.ny * (TRACK_WIDTH / 2 + CURB_WIDTH / 2));
+        oCtx.stroke();
+      }
+
+      // 메인 아스팔트
+      oCtx.beginPath();
+      oCtx.lineCap = 'round';
+      oCtx.lineJoin = 'round';
+      oCtx.lineWidth = TRACK_WIDTH;
+      oCtx.strokeStyle = '#141a24';
+      for (let i = 0; i <= totalPts; i++) {
+        const p = pts[i % totalPts];
+        if (i === 0) oCtx.moveTo(p.x, p.y);
+        else oCtx.lineTo(p.x, p.y);
+      }
+      oCtx.stroke();
+
+      oCtx.lineWidth = TRACK_WIDTH - 12;
+      oCtx.strokeStyle = '#1a222e';
+      oCtx.stroke();
+
+      // 외곽 경계선
+      oCtx.lineWidth = 2;
+      oCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      const marginOffset = TRACK_WIDTH / 2 - 4;
+      
+      oCtx.beginPath();
+      for (let i = 0; i <= totalPts; i++) {
+        const p = pts[i % totalPts];
+        const x = p.x - p.nx * marginOffset;
+        const y = p.y - p.ny * marginOffset;
+        if (i === 0) oCtx.moveTo(x, y);
+        else oCtx.lineTo(x, y);
+      }
+      oCtx.stroke();
+
+      oCtx.beginPath();
+      for (let i = 0; i <= totalPts; i++) {
+        const p = pts[i % totalPts];
+        const x = p.x + p.nx * marginOffset;
+        const y = p.y + p.ny * marginOffset;
+        if (i === 0) oCtx.moveTo(x, y);
+        else oCtx.lineTo(x, y);
+      }
+      oCtx.stroke();
+
+      // 중앙 점선
+      oCtx.lineWidth = 2.5;
+      oCtx.strokeStyle = 'rgba(255, 230, 0, 0.6)';
+      oCtx.setLineDash([12, 16]);
+      oCtx.beginPath();
+      for (let i = 0; i <= totalPts; i++) {
+        const p = pts[i % totalPts];
+        if (i === 0) oCtx.moveTo(p.x, p.y);
+        else oCtx.lineTo(p.x, p.y);
+      }
+      oCtx.stroke();
+      oCtx.setLineDash([]);
+
+      // 스타트 / 피니시 라인
+      const startP = pts[0];
+      const startHalfW = TRACK_WIDTH / 2;
+      const numTiles = 8;
+      const tileSize = TRACK_WIDTH / numTiles;
+      oCtx.save();
+      oCtx.translate(startP.x, startP.y);
+      oCtx.rotate(Math.atan2(startP.ty, startP.tx));
+      for (let row = -1; row <= 1; row++) {
+        for (let col = 0; col < numTiles; col++) {
+          oCtx.fillStyle = (row + col) % 2 === 0 ? '#ffffff' : '#0a0d14';
+          oCtx.fillRect(row * 6, -startHalfW + col * tileSize, 6, tileSize);
+        }
+      }
+      oCtx.fillStyle = cfg.lineColor;
+      oCtx.fillRect(9, -startHalfW, 3, TRACK_WIDTH);
+      oCtx.restore();
+
+      return cvs;
+    }
+
+    function selectTrack(idx) {
+      currentTrackIdx = idx;
+      const cfg = TRACK_CONFIGS[idx];
+
+      // 1. 트랙 포인트 생성
+      trackPoints = generateSmoothCircuit(cfg.waypoints, 260);
+
+      // 2. 체크포인트 계산
+      checkpoints = [];
+      const cpSteps = [0, 32, 65, 98, 130, 162, 195, 228];
+      cpSteps.forEach((sIdx, cpNum) => {
+        const p = trackPoints[sIdx % trackPoints.length];
+        const halfW = TRACK_WIDTH / 2 + 18;
+        checkpoints.push({
+          id: cpNum,
+          p1: { x: p.x - p.nx * halfW, y: p.y - p.ny * halfW },
+          p2: { x: p.x + p.nx * halfW, y: p.y + p.ny * halfW },
+          center: { x: p.x, y: p.y },
+          tangent: { x: p.tx, y: p.ty }
+        });
+      });
+
+      // 3. 코인 생성
+      coins = cfg.coinIndices.map((ptIdx, id) => {
+        const p = trackPoints[ptIdx % trackPoints.length];
+        const offset = ((id % 3) - 1) * 16;
+        return {
+          id,
+          x: p.x + p.nx * offset,
+          y: p.y + p.ny * offset,
+          active: true,
+          respawnTimer: 0
+        };
+      });
+
+      // 4. 오프스크린 캔버스 빌드
+      offscreenTrackCanvas = buildOffscreenTrackForConfig(cfg);
+
+      // 5. 헤더 및 모달 UI 갱신
+      document.getElementById('hud-track-name').textContent = cfg.badgeName;
+      document.getElementById('finish-track-title').textContent = cfg.fullName;
+
+      // 트랙 탭 활성화 클래스 동기화
+      document.querySelectorAll('.track-tab-btn').forEach(btn => {
+        const bIdx = parseInt(btn.getAttribute('data-track'), 10);
+        btn.classList.toggle('active', bIdx === idx);
+      });
+
+      // 트랙별 최고 기록 로드
+      const best = loadBestRecord(idx);
+      raceSession.bestLapTime = best;
+      document.getElementById('hud-best').textContent = formatTime(best);
+      document.getElementById('title-best-record').textContent = formatTime(best);
+
+      // 차량 시작점 리셋
+      const startP = trackPoints[0];
+      vehicle.x = startP.x;
+      vehicle.y = startP.y;
+      vehicle.prevX = startP.x;
+      vehicle.prevY = startP.y;
+      vehicle.vx = 0;
+      vehicle.vy = 0;
+      vehicle.speed = 0;
+      vehicle.angle = Math.atan2(startP.ty, startP.tx);
+      vehicle.nitroTimer = 0;
+      vehicle.prevLeftTire = null;
+      vehicle.prevRightTire = null;
+
+      showToast(`TRACK SELECTED: ${cfg.fullName}`);
+    }
+
+    // --- 6. 오브젝트 풀링 ---
+    class SkidmarkPool {
+      constructor(size = 250) {
+        this.pool = Array.from({ length: size }, () => ({
+          x1: 0, y1: 0, x2: 0, y2: 0, alpha: 0, active: false
+        }));
+        this.nextIdx = 0;
+      }
+      add(x1, y1, x2, y2, alpha = 0.5) {
+        const seg = this.pool[this.nextIdx];
+        seg.x1 = x1; seg.y1 = y1; seg.x2 = x2; seg.y2 = y2;
+        seg.alpha = alpha;
+        seg.active = true;
+        this.nextIdx = (this.nextIdx + 1) % this.pool.length;
+      }
+      update(dt) {
+        for (let i = 0; i < this.pool.length; i++) {
+          const seg = this.pool[i];
+          if (!seg.active) continue;
+          seg.alpha -= dt * 0.1;
+          if (seg.alpha <= 0) seg.active = false;
+        }
+      }
+      render(targetCtx) {
+        targetCtx.lineWidth = 2.5;
+        targetCtx.lineCap = 'round';
+        for (let i = 0; i < this.pool.length; i++) {
+          const seg = this.pool[i];
+          if (!seg.active) continue;
+          targetCtx.strokeStyle = `rgba(10, 14, 22, ${seg.alpha.toFixed(2)})`;
+          targetCtx.beginPath();
+          targetCtx.moveTo(seg.x1, seg.y1);
+          targetCtx.lineTo(seg.x2, seg.y2);
+          targetCtx.stroke();
+        }
+      }
+      clear() {
+        this.pool.forEach(seg => seg.active = false);
+      }
+    }
+
+    class ParticlePool {
+      constructor(size = 180) {
+        this.pool = Array.from({ length: size }, () => ({
+          x: 0, y: 0, vx: 0, vy: 0, size: 2, life: 0, maxLife: 1, color: '#fff', active: false
+        }));
+      }
+      spawn(x, y, vx, vy, size, maxLife, color) {
+        const p = this.pool.find(item => !item.active);
+        if (!p) return;
+        p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+        p.size = size; p.life = 0; p.maxLife = maxLife;
+        p.color = color;
+        p.active = true;
+      }
+      update(dt) {
+        for (let i = 0; i < this.pool.length; i++) {
+          const p = this.pool[i];
+          if (!p.active) continue;
+          p.life += dt;
+          if (p.life >= p.maxLife) {
+            p.active = false;
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        }
+      }
+      render(targetCtx) {
+        for (let i = 0; i < this.pool.length; i++) {
+          const p = this.pool[i];
+          if (!p.active) continue;
+          const progress = p.life / p.maxLife;
+          const alpha = 1 - progress;
+          targetCtx.fillStyle = p.color;
+          targetCtx.globalAlpha = Math.max(0, alpha);
+          targetCtx.beginPath();
+          targetCtx.arc(p.x, p.y, p.size * (1 + progress * 0.7), 0, Math.PI * 2);
+          targetCtx.fill();
+        }
+        targetCtx.globalAlpha = 1.0;
+      }
+      clear() {
+        this.pool.forEach(p => p.active = false);
+      }
+    }
+
+    const skidPool = new SkidmarkPool(250);
+    const particlePool = new ParticlePool(180);
+
+    // --- 7. 차량 상태 & 물리 엔진 ---
+    const vehicle = {
+      x: 480,
+      y: 472,
+      prevX: 480,
+      prevY: 472,
+      vx: 0,
+      vy: 0,
+      angle: 0,
+      steerAngle: 0,
+      speed: 0,
+      isOffroad: false,
+      nitroTimer: 0,
+      prevLeftTire: null,
+      prevRightTire: null
+    };
+
+    function respawnVehicleOnTrack() {
+      let minDist = Infinity;
+      let closestIdx = 0;
+      for (let i = 0; i < trackPoints.length; i++) {
+        const d = Math.hypot(vehicle.x - trackPoints[i].x, vehicle.y - trackPoints[i].y);
+        if (d < minDist) {
+          minDist = d;
+          closestIdx = i;
+        }
+      }
+      const targetP = trackPoints[closestIdx];
+      vehicle.x = targetP.x;
+      vehicle.y = targetP.y;
+      vehicle.vx = 0;
+      vehicle.vy = 0;
+      vehicle.speed = 0;
+      vehicle.angle = Math.atan2(targetP.ty, targetP.tx);
+      vehicle.prevLeftTire = null;
+      vehicle.prevRightTire = null;
+      showToast('VEHICLE RESPAWNED');
+    }
+
+    function checkLineIntersection(p1, p2, p3, p4) {
+      const d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+      if (Math.abs(d) < 1e-6) return false;
+      const t = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / d;
+      const u = -((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)) / d;
+      return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+
+    function checkOffroad(x, y) {
+      let minDistSq = Infinity;
+      for (let i = 0; i < trackPoints.length; i++) {
+        const dx = x - trackPoints[i].x;
+        const dy = y - trackPoints[i].y;
+        const dSq = dx * dx + dy * dy;
+        if (dSq < minDistSq) minDistSq = dSq;
+      }
+      const dist = Math.sqrt(minDistSq);
+      return dist > (TRACK_WIDTH / 2 + CURB_WIDTH);
+    }
+
+    function updatePhysics(dt) {
+      if (currentState !== GameState.RACING) return;
+
+      vehicle.prevX = vehicle.x;
+      vehicle.prevY = vehicle.y;
+
+      // 니트로 타이머
+      if (vehicle.nitroTimer > 0) {
+        vehicle.nitroTimer -= dt;
+        if (vehicle.nitroTimer <= 0) {
+          vehicle.nitroTimer = 0;
+          document.getElementById('hud-nitro-status').textContent = 'READY';
+          document.getElementById('hud-nitro-fill').style.width = '100%';
+        } else {
+          const ratio = (vehicle.nitroTimer / 2.5);
+          document.getElementById('hud-nitro-fill').style.width = `${(ratio * 100).toFixed(0)}%`;
+        }
+      }
+
+      vehicle.isOffroad = checkOffroad(vehicle.x, vehicle.y);
+
+      const forwardX = Math.cos(vehicle.angle);
+      const forwardY = Math.sin(vehicle.angle);
+      const lateralX = -forwardY;
+      const lateralY = forwardX;
+
+      let vForward = vehicle.vx * forwardX + vehicle.vy * forwardY;
+      let vLateral = vehicle.vx * lateralX + vehicle.vy * lateralY;
+
+      const isBoosting = vehicle.nitroTimer > 0;
+      let maxSpd = isBoosting ? PHYSICS.BOOST_SPEED : PHYSICS.MAX_SPEED;
+      let accelPower = PHYSICS.ACCEL;
+
+      if (vehicle.isOffroad) {
+        maxSpd *= PHYSICS.OFFROAD_PENALTY;
+        accelPower *= PHYSICS.OFFROAD_PENALTY;
+      }
+
+      if (inputState.up) {
+        vForward += accelPower * dt;
+        if (vForward > maxSpd) vForward = maxSpd;
+      } else if (inputState.down) {
+        if (vForward > 10) {
+          vForward -= PHYSICS.BRAKE_FORCE * dt;
+        } else {
+          vForward -= PHYSICS.ACCEL * 0.7 * dt;
+          if (vForward < -PHYSICS.REVERSE_MAX) vForward = -PHYSICS.REVERSE_MAX;
+        }
+      } else {
+        vForward *= Math.pow(vehicle.isOffroad ? 0.94 : PHYSICS.ROLLING_FRICTION, dt * 60);
+      }
+
+      const absSpd = Math.abs(vForward);
+      const speedFactor = Math.min(absSpd / 110, 1.0);
+      const steerFactor = vForward >= 0 ? 1 : -1;
+
+      if (inputState.left) {
+        vehicle.angle -= PHYSICS.TURN_SPEED * speedFactor * steerFactor * dt;
+        vehicle.steerAngle = Math.max(vehicle.steerAngle - 8 * dt, -0.45);
+      } else if (inputState.right) {
+        vehicle.angle += PHYSICS.TURN_SPEED * speedFactor * steerFactor * dt;
+        vehicle.steerAngle = Math.min(vehicle.steerAngle + 8 * dt, 0.45);
+      } else {
+        vehicle.steerAngle *= 0.7;
+      }
+
+      vLateral *= Math.pow(PHYSICS.LATERAL_FRICTION, dt * 60);
+
+      vehicle.vx = forwardX * vForward + lateralX * vLateral;
+      vehicle.vy = forwardY * vForward + lateralY * vLateral;
+      vehicle.speed = Math.hypot(vehicle.vx, vehicle.vy);
+
+      vehicle.x += vehicle.vx * dt;
+      vehicle.y += vehicle.vy * dt;
+
+      // 외곽 가드레일 바운스
+      const margin = 26;
+      let bounced = false;
+      if (vehicle.x < margin) { vehicle.x = margin; vehicle.vx = -vehicle.vx * PHYSICS.WALL_BOUNCE_DAMP; bounced = true; }
+      if (vehicle.x > VIRTUAL_WIDTH - margin) { vehicle.x = VIRTUAL_WIDTH - margin; vehicle.vx = -vehicle.vx * PHYSICS.WALL_BOUNCE_DAMP; bounced = true; }
+      if (vehicle.y < margin + 44) { vehicle.y = margin + 44; vehicle.vy = -vehicle.vy * PHYSICS.WALL_BOUNCE_DAMP; bounced = true; }
+      if (vehicle.y > VIRTUAL_HEIGHT - margin) { vehicle.y = VIRTUAL_HEIGHT - margin; vehicle.vy = -vehicle.vy * PHYSICS.WALL_BOUNCE_DAMP; bounced = true; }
+
+      if (bounced) {
+        playWallCrashSound();
+        for (let i = 0; i < 8; i++) {
+          particlePool.spawn(vehicle.x, vehicle.y, (Math.random() - 0.5) * 160, (Math.random() - 0.5) * 160, 2.5, 0.35, '#ffaa00');
+        }
+      }
+
+      const halfCarLen = 14;
+      const halfCarW = 9;
+      const backX = vehicle.x - forwardX * halfCarLen;
+      const backY = vehicle.y - forwardY * halfCarLen;
+      const lTireX = backX - lateralX * halfCarW;
+      const lTireY = backY - lateralY * halfCarW;
+      const rTireX = backX + lateralX * halfCarW;
+      const rTireY = backY + lateralY * halfCarW;
+
+      if (inputState.down && vForward > 160) {
+        if (vehicle.prevLeftTire) {
+          skidPool.add(vehicle.prevLeftTire.x, vehicle.prevLeftTire.y, lTireX, lTireY, 0.4);
+          skidPool.add(vehicle.prevRightTire.x, vehicle.prevRightTire.y, rTireX, rTireY, 0.4);
+        }
+        particlePool.spawn(lTireX, lTireY, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 16, 3, 0.35, 'rgba(200, 220, 240, 0.6)');
+        particlePool.spawn(rTireX, rTireY, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 16, 3, 0.35, 'rgba(200, 220, 240, 0.6)');
+      }
+
+      if (vehicle.isOffroad && absSpd > 40) {
+        particlePool.spawn(backX, backY, -forwardX * 30 + (Math.random() - 0.5) * 30, -forwardY * 30 + (Math.random() - 0.5) * 30, 2.5, 0.3, '#10301a');
+      }
+
+      if (isBoosting) {
+        particlePool.spawn(backX, backY, -forwardX * 90 + (Math.random() - 0.5) * 25, -forwardY * 90 + (Math.random() - 0.5) * 25, 3.5, 0.25, '#00f3ff');
+        particlePool.spawn(backX, backY, -forwardX * 80 + (Math.random() - 0.5) * 20, -forwardY * 80 + (Math.random() - 0.5) * 20, 3.0, 0.22, '#ff0077');
+      }
+
+      vehicle.prevLeftTire = { x: lTireX, y: lTireY };
+      vehicle.prevRightTire = { x: rTireX, y: rTireY };
+
+      // 체크포인트 통과 검사 (CCD)
+      const currentCp = checkpoints[raceSession.nextCheckpoint];
+      if (currentCp) {
+        const crossed = checkLineIntersection(
+          { x: vehicle.prevX, y: vehicle.prevY },
+          { x: vehicle.x, y: vehicle.y },
+          currentCp.p1,
+          currentCp.p2
+        );
+
+        if (crossed) {
+          const dot = vehicle.vx * currentCp.tangent.x + vehicle.vy * currentCp.tangent.y;
+          if (dot > -20) {
+            if (raceSession.nextCheckpoint === 0) {
+              handleLapCompletion();
+            } else {
+              playCheckpointSound();
+            }
+            raceSession.nextCheckpoint = (raceSession.nextCheckpoint + 1) % checkpoints.length;
+          }
+        }
+      }
+
+      // 코인 수집 및 리스폰
+      coins.forEach(c => {
+        if (c.active) {
+          const dist = Math.hypot(vehicle.x - c.x, vehicle.y - c.y);
+          if (dist < 22) {
+            c.active = false;
+            c.respawnTimer = 12.0;
+            raceSession.coins++;
+            document.getElementById('hud-coins').textContent = `🪙 ${raceSession.coins}`;
+            playCoinSound();
+            showToast('NITRO BOOST +40%');
+            vehicle.nitroTimer = 2.5;
+            document.getElementById('hud-nitro-status').textContent = 'BOOSTING!';
+
+            for (let i = 0; i < 12; i++) {
+              const ang = (Math.PI * 2 / 12) * i;
+              particlePool.spawn(c.x, c.y, Math.cos(ang) * 90, Math.sin(ang) * 90, 2.5, 0.35, '#ffd700');
+            }
+          }
+        } else {
+          c.respawnTimer -= dt;
+          if (c.respawnTimer <= 0) c.active = true;
+        }
+      });
+
+      // 오디오 RPM 변조
+      if (audioCtx && !isMuted) {
+        const speedRatio = Math.min(absSpd / PHYSICS.BOOST_SPEED, 1.0);
+        const engineFreq = 55 + speedRatio * 190;
+        engineOsc.frequency.setValueAtTime(engineFreq, audioCtx.currentTime);
+        engineFilter.frequency.setValueAtTime(320 + speedRatio * 900, audioCtx.currentTime);
+        const targetVol = (inputState.up ? 0.35 : 0.2) + speedRatio * 0.15;
+        setAudioGainSmooth(engineGain, targetVol, 0.05);
+      }
+    }
+
+    // --- 8. 레이스 세션 & 랩타임 관리 (트랙별 분리 저장) ---
+    const SALT = 'NEON_CIRCUIT_2026_AGY';
+
+    const raceSession = {
+      currentLap: 1,
+      nextCheckpoint: 1,
+      lapStartTime: 0,
+      totalStartTime: 0,
+      currentLapTime: 0,
+      bestLapTime: null,
+      coins: 0
+    };
+
+    function getStorageKey(trkIdx) {
+      return TRACK_CONFIGS[trkIdx].storageKey;
+    }
+
+    function saveBestRecord(time, trkIdx = currentTrackIdx) {
+      const timeStr = time.toFixed(3);
+      let hash = 0;
+      const combined = timeStr + SALT;
+      for (let i = 0; i < combined.length; i++) {
+        hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+        hash |= 0;
+      }
+      try {
+        localStorage.setItem(getStorageKey(trkIdx), btoa(JSON.stringify({ time, hash: hash.toString(16) })));
+      } catch (e) {}
+    }
+
+    function loadBestRecord(trkIdx = currentTrackIdx) {
+      try {
+        const raw = localStorage.getItem(getStorageKey(trkIdx));
+        if (!raw) return null;
+        const data = JSON.parse(atob(raw));
+        const combined = data.time.toFixed(3) + SALT;
+        let expectedHash = 0;
+        for (let i = 0; i < combined.length; i++) {
+          expectedHash = ((expectedHash << 5) - expectedHash) + combined.charCodeAt(i);
+          expectedHash |= 0;
+        }
+        if (data.hash !== expectedHash.toString(16) || data.time < 8.0) return null;
+        return data.time;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function formatTime(seconds) {
+      if (!seconds || seconds <= 0 || isNaN(seconds)) return '--:--.--';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds % 1) * 100);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+    }
+
+    function handleLapCompletion() {
+      const now = performance.now();
+      const lapTime = (now - raceSession.lapStartTime) / 1000;
+      raceSession.lapStartTime = now;
+
+      let isNewBest = false;
+      if (!raceSession.bestLapTime || lapTime < raceSession.bestLapTime) {
+        raceSession.bestLapTime = lapTime;
+        saveBestRecord(lapTime);
+        document.getElementById('hud-best').textContent = formatTime(lapTime);
+        isNewBest = true;
+      }
+
+      playLapFanfare();
+      showToast(isNewBest ? `NEW BEST LAP! ${formatTime(lapTime)}` : `LAP ${raceSession.currentLap} FINISHED`);
+
+      if (raceSession.currentLap >= TOTAL_LAPS) {
+        finishRace();
+      } else {
+        raceSession.currentLap++;
+        document.getElementById('hud-lap').textContent = `${raceSession.currentLap} / ${TOTAL_LAPS}`;
+      }
+    }
+
+    function finishRace() {
+      transitionTo(GameState.FINISHED);
+      const totalTime = (performance.now() - raceSession.totalStartTime) / 1000;
+      document.getElementById('finish-total-time').textContent = formatTime(totalTime);
+      document.getElementById('finish-best-lap').textContent = formatTime(raceSession.bestLapTime);
+      document.getElementById('finish-coins').textContent = `🪙 ${raceSession.coins}`;
+
+      const saved = loadBestRecord();
+      if (saved && raceSession.bestLapTime && raceSession.bestLapTime <= saved) {
+        document.getElementById('finish-new-record').style.display = 'block';
+      } else {
+        document.getElementById('finish-new-record').style.display = 'none';
+      }
+    }
+
+    let toastTimeout = null;
+    function showToast(msg) {
+      const toast = document.getElementById('hud-toast');
+      toast.textContent = msg;
+      toast.classList.add('active');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('active'), 2000);
+    }
+
+    // --- 9. 상태 머신 (FSM) 전이 관리 ---
+    function transitionTo(newState) {
+      currentState = newState;
+      document.getElementById('modal-title').classList.remove('active');
+      document.getElementById('modal-pause').classList.remove('active');
+      document.getElementById('modal-finish').classList.remove('active');
+
+      switch (newState) {
+        case GameState.MENU:
+          resetInputs();
+          document.getElementById('modal-title').classList.add('active');
+          const savedBest = loadBestRecord();
+          document.getElementById('title-best-record').textContent = formatTime(savedBest);
+          if (savedBest) document.getElementById('hud-best').textContent = formatTime(savedBest);
+          break;
+
+        case GameState.COUNTDOWN:
+          resetInputs();
+          startCountdownFlow();
+          break;
+
+        case GameState.RACING:
+          break;
+
+        case GameState.PAUSED:
+          resetInputs();
+          document.getElementById('modal-pause').classList.add('active');
+          break;
+
+        case GameState.FINISHED:
+          resetInputs();
+          document.getElementById('modal-finish').classList.add('active');
+          break;
+      }
+    }
+
+    function startCountdownFlow() {
+      const overlay = document.getElementById('countdown-overlay');
+      const valEl = document.getElementById('countdown-val');
+      let count = 3;
+
+      valEl.textContent = '3';
+      valEl.classList.add('pop');
+      playCountdownTone(false);
+
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          valEl.classList.remove('pop');
+          void valEl.offsetWidth;
+          valEl.textContent = count;
+          valEl.classList.add('pop');
+          playCountdownTone(false);
+        } else if (count === 0) {
+          valEl.classList.remove('pop');
+          void valEl.offsetWidth;
+          valEl.textContent = 'GO!';
+          valEl.style.color = '#00ff88';
+          valEl.classList.add('pop');
+          playCountdownTone(true);
+        } else {
+          clearInterval(interval);
+          valEl.classList.remove('pop');
+          valEl.style.color = '';
+          raceSession.lapStartTime = performance.now();
+          raceSession.totalStartTime = performance.now();
+          currentState = GameState.RACING;
+        }
+      }, 900);
+    }
+
+    function startNewRace() {
+      const startP = trackPoints[0];
+      vehicle.x = startP.x;
+      vehicle.y = startP.y;
+      vehicle.vx = 0;
+      vehicle.vy = 0;
+      vehicle.speed = 0;
+      vehicle.angle = Math.atan2(startP.ty, startP.tx);
+      vehicle.nitroTimer = 0;
+      vehicle.prevLeftTire = null;
+      vehicle.prevRightTire = null;
+
+      raceSession.currentLap = 1;
+      raceSession.nextCheckpoint = 1;
+      raceSession.coins = 0;
+      document.getElementById('hud-lap').textContent = `1 / ${TOTAL_LAPS}`;
+      document.getElementById('hud-coins').textContent = `🪙 0`;
+      document.getElementById('hud-time').textContent = `00:00.00`;
+      document.getElementById('hud-nitro-status').textContent = 'READY';
+      document.getElementById('hud-nitro-fill').style.width = '100%';
+
+      skidPool.clear();
+      particlePool.clear();
+
+      // 코인 활성화 리셋
+      coins.forEach(c => {
+        c.active = true;
+        c.respawnTimer = 0;
+      });
+
+      transitionTo(GameState.COUNTDOWN);
+    }
+
+    function togglePause() {
+      if (currentState === GameState.RACING) transitionTo(GameState.PAUSED);
+      else if (currentState === GameState.PAUSED) transitionTo(GameState.RACING);
+    }
+
+    // UI 버튼 및 트랙 탭 이벤트
+    document.querySelectorAll('.track-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tIdx = parseInt(btn.getAttribute('data-track'), 10);
+        selectTrack(tIdx);
+      });
+    });
+
+    document.getElementById('hud-track-pill').addEventListener('click', () => {
+      transitionTo(GameState.MENU);
+    });
+
+    document.getElementById('btn-change-track-pause').addEventListener('click', () => {
+      transitionTo(GameState.MENU);
+    });
+
+    document.getElementById('btn-change-track-finish').addEventListener('click', () => {
+      transitionTo(GameState.MENU);
+    });
+
+    document.getElementById('btn-start-race').addEventListener('click', startNewRace);
+    document.getElementById('btn-resume').addEventListener('click', () => transitionTo(GameState.RACING));
+    document.getElementById('btn-restart-modal').addEventListener('click', startNewRace);
+    document.getElementById('btn-play-again').addEventListener('click', startNewRace);
+    document.getElementById('btn-pause').addEventListener('click', togglePause);
+    document.getElementById('btn-restart').addEventListener('click', startNewRace);
+
+    // --- 10. 렌더링 파이프라인 ---
+    function render(renderAlpha) {
+      ctx.drawImage(offscreenTrackCanvas, 0, 0);
+
+      skidPool.render(ctx);
+
+      const now = performance.now() * 0.003;
+      coins.forEach(c => {
+        if (!c.active) return;
+        const scaleX = Math.cos(now + c.id);
+        ctx.save();
+        ctx.translate(c.x, c.y);
+
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, Math.max(Math.abs(scaleX) * 7.5, 1.8), 7.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#fff275';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+      });
+
+      renderVehicle(ctx, renderAlpha);
+
+      particlePool.render(ctx);
+
+      updateHUD();
+    }
+
+    function renderVehicle(targetCtx, alpha) {
+      const carX = vehicle.prevX + (vehicle.x - vehicle.prevX) * alpha;
+      const carY = vehicle.prevY + (vehicle.y - vehicle.prevY) * alpha;
+
+      targetCtx.save();
+      targetCtx.translate(carX, carY);
+      targetCtx.rotate(vehicle.angle);
+
+      // 그림자
+      targetCtx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      targetCtx.beginPath();
+      targetCtx.roundRect(-16, -9, 34, 18, 5);
+      targetCtx.fill();
+
+      // 전조등 빔
+      targetCtx.fillStyle = 'rgba(255, 250, 200, 0.08)';
+      targetCtx.beginPath();
+      targetCtx.moveTo(14, -6);
+      targetCtx.lineTo(65, -24);
+      targetCtx.lineTo(65, -2);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      targetCtx.beginPath();
+      targetCtx.moveTo(14, 6);
+      targetCtx.lineTo(65, 2);
+      targetCtx.lineTo(65, 24);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      // 바퀴 4개
+      targetCtx.fillStyle = '#111620';
+      targetCtx.fillRect(-12, -10, 8, 3.5);
+      targetCtx.fillRect(-12, 6.5, 8, 3.5);
+
+      targetCtx.save();
+      targetCtx.translate(9, -8.5);
+      targetCtx.rotate(vehicle.steerAngle);
+      targetCtx.fillStyle = '#111620';
+      targetCtx.fillRect(-4, -1.8, 8, 3.5);
+      targetCtx.restore();
+
+      targetCtx.save();
+      targetCtx.translate(9, 8.5);
+      targetCtx.rotate(vehicle.steerAngle);
+      targetCtx.fillStyle = '#111620';
+      targetCtx.fillRect(-4, -1.8, 8, 3.5);
+      targetCtx.restore();
+
+      // 메인 차체
+      const bodyGrad = targetCtx.createLinearGradient(-15, -8, 15, 8);
+      bodyGrad.addColorStop(0, '#0099cc');
+      bodyGrad.addColorStop(0.5, '#00f3ff');
+      bodyGrad.addColorStop(1, '#00c3e6');
+
+      targetCtx.fillStyle = bodyGrad;
+      targetCtx.beginPath();
+      targetCtx.roundRect(-14, -7.5, 28, 15, [4, 7, 7, 4]);
+      targetCtx.fill();
+
+      // 스트라이프
+      targetCtx.fillStyle = '#ffffff';
+      targetCtx.fillRect(-12, -1.5, 24, 3);
+      targetCtx.fillStyle = '#ff0077';
+      targetCtx.fillRect(-12, -0.6, 24, 1.2);
+
+      // 캐노피
+      targetCtx.fillStyle = '#0b111e';
+      targetCtx.beginPath();
+      targetCtx.roundRect(-5, -5, 12, 10, [2, 4, 4, 2]);
+      targetCtx.fill();
+
+      // 반사광
+      targetCtx.fillStyle = 'rgba(0, 243, 255, 0.4)';
+      targetCtx.beginPath();
+      targetCtx.moveTo(-3, -4);
+      targetCtx.lineTo(4, -4);
+      targetCtx.lineTo(6, -1);
+      targetCtx.lineTo(-1, -1);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      // 스포일러
+      targetCtx.fillStyle = '#0a101d';
+      targetCtx.fillRect(-16, -8, 3.5, 16);
+      targetCtx.fillStyle = '#00f3ff';
+      targetCtx.fillRect(-15, -7, 1.5, 14);
+
+      // 헤드라이트
+      targetCtx.fillStyle = '#ffeaa7';
+      targetCtx.fillRect(13, -6.5, 1.5, 3);
+      targetCtx.fillRect(13, 3.5, 1.5, 3);
+
+      // 테일램프
+      const isBraking = inputState.down;
+      targetCtx.fillStyle = isBraking ? '#ff0033' : '#aa0022';
+      targetCtx.shadowColor = isBraking ? '#ff0033' : 'transparent';
+      targetCtx.shadowBlur = isBraking ? 8 : 0;
+      targetCtx.fillRect(-14.5, -6.5, 1.5, 2.8);
+      targetCtx.fillRect(-14.5, 3.7, 1.5, 2.8);
+      targetCtx.shadowBlur = 0;
+
+      targetCtx.restore();
+    }
+
+    function updateHUD() {
+      const kmh = Math.floor(vehicle.speed * 0.38);
+      document.getElementById('hud-speed').textContent = kmh;
+
+      if (currentState === GameState.RACING) {
+        const lapElapsed = (performance.now() - raceSession.lapStartTime) / 1000;
+        document.getElementById('hud-time').textContent = formatTime(lapElapsed);
+      }
+    }
+
+    // --- 11. 메인 게임 루프 ---
+    let lastFrameTime = performance.now();
+    let accumulator = 0;
+
+    function gameLoop(currentTime) {
+      let frameTime = (currentTime - lastFrameTime) / 1000;
+      lastFrameTime = currentTime;
+
+      if (frameTime > MAX_ACCUMULATOR || frameTime <= 0 || isNaN(frameTime)) {
+        frameTime = MAX_ACCUMULATOR;
+      }
+      accumulator += frameTime;
+
+      while (accumulator >= FIXED_STEP) {
+        updatePhysics(FIXED_STEP);
+        skidPool.update(FIXED_STEP);
+        particlePool.update(FIXED_STEP);
+        accumulator -= FIXED_STEP;
+      }
+
+      const renderAlpha = accumulator / FIXED_STEP;
+      render(renderAlpha);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 초기 트랙 0 로드 및 게임 기동
+    selectTrack(0);
+
+    requestAnimationFrame((time) => {
+      lastFrameTime = time;
+      transitionTo(GameState.MENU);
+      requestAnimationFrame(gameLoop);
+    });
+  </script>
+</body>
+</html>

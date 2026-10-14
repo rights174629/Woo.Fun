@@ -1,0 +1,588 @@
+/* ==========================================================================
+   Woo.Fun 프로젝트 공통 스타일시트 (common.css)
+   - 2000s 레트로 아케이드 & 플래시 포털 전역 디자인 시스템
+   - 공통 헤더 바 (.arcade-header-bar, .header)
+   - 3D 아케이드 푸시 버튼 (.arcade-btn, .btn-action, .btn-retro-3d)
+   - 레트로 모달 & 게임오버 오버레이 (.overlay-screen, .retro-modal-card)
+   - 모바일 터치 패드 & 가상 버튼 (.mobile-controls-row, .control-btn, .btn-pad, .touch-btn)
+   - CRT 스캔라인 및 웹 접근성 유틸리티
+   ========================================================================== */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+:root {
+    /* 1. 레트로 아케이드 콘솔 다크 웜 배경 */
+    --bg-dark: #14131d;
+    --bg-soft: #1e1d2c;
+    --bg-header: #111019;
+    --bg-surface: #191826;
+    --panel-bg: rgba(22, 21, 33, 0.95);
+    --panel-border: #3b3955;
+    --line: rgba(255, 255, 255, 0.12);
+
+    /* 2. 레트로 아케이드 포인트 & 브랜드 컬러 */
+    --gold: #f1c40f;
+    --gold-shadow: #b7950b;
+    --gold-hover: #f4d03f;
+
+    --green: #2ecc71;
+    --green-shadow: #1e8449;
+    --green-hover: #32d878;
+
+    --red: #e74c3c;
+    --red-shadow: #962d22;
+    --red-hover: #ff5252;
+
+    --blue: #3498db;
+    --blue-shadow: #21618c;
+
+    --teal: #00cec9;
+    --teal-shadow: #009895;
+    --accent: #00cec9;
+
+    --purple: #9b59b6;
+
+    /* 3. 상태 색상 */
+    --ok: #2ecc71;
+    --warn: #f1c40f;
+    --bug: #e74c3c;
+
+    /* 4. 텍스트 색상 */
+    --text-main: #ffffff;
+    --text-sub: #d5d9e2;
+    --text-muted: #8e95a5;
+
+    /* 5. 규격 및 치수 */
+    --header-height: 48px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-full: 9999px;
+
+    /* 6. 타이포그래피 */
+    --font-pixel: 'DungGeunMo', 'Press Start 2P', 'Courier New', monospace;
+    --font-mono: 'DungGeunMo', 'Cascadia Code', Consolas, 'Courier New', monospace;
+    --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    --font-ui: var(--font-sans);
+
+    /* 7. 반응형 vh 단위 */
+    --vh: 1vh;
+}
+
+/* ---------- 전역 리셋 & 박스 모델 ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* ---------- 웹 접근성 유틸리티 ---------- */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.skip-link {
+    position: absolute;
+    left: 12px;
+    top: -60px;
+    background: var(--gold);
+    color: #111111;
+    font-weight: 900;
+    font-size: 0.95rem;
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    z-index: 9999;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+    top: 12px;
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
+:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ---------- CRT 스캔라인 오버레이 유틸리티 ---------- */
+.crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9990;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+    opacity: 0.6;
+}
+
+/* ==========================================================================
+   1. 통일된 전역 상단 아케이드 헤더 바 (.arcade-header-bar, .header)
+   - 48px 컴팩트 규격으로 게임 캔버스 침범을 원천 차단
+   ========================================================================== */
+.arcade-header-bar,
+.header {
+    background-color: var(--bg-header);
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    border-bottom: 2px solid var(--panel-border);
+    z-index: 50;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    width: 100%;
+}
+
+/* 좌측 내비게이션 (허브로 가기 버튼) */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+.btn-nav-hub {
+    background: #252336;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    text-decoration: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-family: var(--font-pixel);
+    font-size: 12.5px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 0 var(--gold-shadow);
+    transition: all 0.1s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.btn-nav-hub:hover {
+    background: #332f48;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 var(--gold-shadow);
+}
+.btn-nav-hub:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+/* 중앙 타이틀 (오락실 전광판 타이포) */
+.title-container {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.title,
+.arcade-title {
+    font-family: var(--font-pixel);
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 2px 2px 0px #000;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+/* 우측 HUD 스코어/액션 영역 */
+.header-right,
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+/* 인라인 HUD 캡슐 (점수판) */
+.hud-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #191826;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 800;
+}
+.hud-label {
+    color: var(--text-muted);
+    font-family: var(--font-pixel);
+    font-size: 11px;
+}
+.hud-val {
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+.hud-val.gold {
+    color: var(--gold);
+    text-shadow: 0 0 6px rgba(241, 196, 15, 0.5);
+}
+.hud-val.green {
+    color: var(--green);
+}
+.hud-val.red {
+    color: var(--red);
+}
+
+/* 헤더 여백용 */
+.header-spacer {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   2. 3D 아케이드 푸시 버튼 시스템 (.arcade-btn, .btn-action, .btn-retro-3d)
+   - 누르면 3~4px 눌리는 택타일 손맛
+   ========================================================================== */
+.arcade-btn,
+.btn-retro-3d {
+    color: #ffffff;
+    text-decoration: none;
+    background-color: var(--green);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-pixel);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 0 var(--green-shadow);
+    transition: all 0.08s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+    z-index: 2;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.arcade-btn:hover,
+.btn-retro-3d:hover {
+    background-color: var(--green-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 var(--green-shadow);
+}
+
+.arcade-btn:active,
+.btn-retro-3d:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--green-shadow);
+}
+
+/* 레드 버튼 (일시정지/게임오버/취소) */
+.arcade-btn.btn-red,
+.btn-retro-3d.btn-red {
+    background-color: var(--red);
+    box-shadow: 0 4px 0 var(--red-shadow);
+}
+.arcade-btn.btn-red:hover,
+.btn-retro-3d.btn-red:hover {
+    background-color: var(--red-hover);
+    box-shadow: 0 5px 0 var(--red-shadow);
+}
+.arcade-btn.btn-red:active,
+.btn-retro-3d.btn-red:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--red-shadow);
+}
+
+/* 골드 버튼 (강조/시작/업그레이드) */
+.arcade-btn.btn-gold,
+.btn-retro-3d.btn-gold {
+    background-color: var(--gold);
+    color: #1a1a1a;
+    box-shadow: 0 4px 0 var(--gold-shadow);
+}
+.arcade-btn.btn-gold:hover,
+.btn-retro-3d.btn-gold:hover {
+    background-color: var(--gold-hover);
+    box-shadow: 0 5px 0 var(--gold-shadow);
+}
+.arcade-btn.btn-gold:active,
+.btn-retro-3d.btn-gold:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--gold-shadow);
+}
+
+/* 시안/블루 버튼 */
+.arcade-btn.btn-cyan,
+.btn-retro-3d.btn-cyan {
+    background-color: var(--teal);
+    color: #032120;
+    box-shadow: 0 4px 0 var(--teal-shadow);
+}
+.arcade-btn.btn-cyan:hover,
+.btn-retro-3d.btn-cyan:hover {
+    background-color: #55efc4;
+}
+.arcade-btn.btn-cyan:active,
+.btn-retro-3d.btn-cyan:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--teal-shadow);
+}
+
+/* 아웃라인 버튼 */
+.arcade-btn.btn-outline,
+.btn-retro-3d.btn-outline {
+    background: #252336;
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 3px 0 #14131d;
+    color: #c4c7d0;
+}
+.arcade-btn.btn-outline:hover,
+.btn-retro-3d.btn-outline:hover {
+    background: #332f48;
+    color: #ffffff;
+    border-color: var(--gold);
+}
+.arcade-btn.btn-outline:active,
+.btn-retro-3d.btn-outline:active {
+    transform: translateY(3px);
+    box-shadow: none;
+}
+
+/* 표준 액션 버튼 (모달/시작/재시작 큰 버튼) */
+.btn-action,
+.btn-standard {
+    padding: 13px 34px;
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.08s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.btn-start {
+    background-color: var(--green);
+    color: #052112;
+    box-shadow: 0 5px 0 var(--green-shadow), 0 8px 18px rgba(46, 204, 113, 0.3);
+}
+.btn-start:hover {
+    background-color: var(--green-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 0 var(--green-shadow), 0 10px 22px rgba(46, 204, 113, 0.4);
+}
+.btn-start:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--green-shadow);
+}
+
+.btn-restart {
+    background-color: var(--red);
+    color: #ffffff;
+    box-shadow: 0 5px 0 var(--red-shadow), 0 8px 18px rgba(231, 76, 60, 0.3);
+}
+.btn-restart:hover {
+    background-color: var(--red-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 0 var(--red-shadow), 0 10px 22px rgba(231, 76, 60, 0.4);
+}
+.btn-restart:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--red-shadow);
+}
+
+/* ==========================================================================
+   3. 공통 오버레이 화면 & 레트로 모달 (.overlay-screen, .retro-modal-card)
+   ========================================================================== */
+.overlay-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(14, 13, 22, 0.92);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    z-index: 40;
+    padding: 20px;
+    text-align: center;
+}
+
+/* 모달 카드: 레트로 CRT 모니터 프레임 */
+.retro-modal-card {
+    background: #1e1d2c;
+    border: 3px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    max-width: 440px;
+    width: 92%;
+    box-shadow: 
+        0 14px 35px rgba(0, 0, 0, 0.7),
+        inset 0 0 20px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+.retro-modal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--red), var(--gold), var(--teal), var(--green));
+}
+
+.overlay-screen h2,
+.retro-modal-title {
+    font-family: var(--font-pixel);
+    margin: 0 0 14px 0;
+    font-size: clamp(1.8rem, 4vw, 2.3rem);
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: var(--gold);
+    text-shadow: 2px 2px 0px #000;
+}
+
+.overlay-stats-card,
+.retro-stats-box {
+    background: #14131f;
+    border: 2px solid var(--panel-border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    width: 100%;
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-sub);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.retro-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    padding: 4px 0;
+}
+.retro-stats-row:last-child {
+    border-bottom: none;
+}
+.retro-stats-label {
+    color: var(--text-muted);
+}
+.retro-stats-value {
+    color: var(--gold);
+    font-weight: 900;
+    font-size: 16px;
+}
+
+/* ==========================================================================
+   4. 모바일 터치 패드 & 가상 버튼 컨트롤러 규격
+   ========================================================================== */
+.mobile-controls-row {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    padding: 10px 14px;
+    background-color: #151420;
+    border-top: 2px solid var(--panel-border);
+    box-sizing: border-box;
+    justify-content: center;
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+    .mobile-controls-row {
+        display: none !important;
+    }
+}
+
+.control-btn,
+.btn-pad {
+    flex: 1;
+    max-width: 150px;
+    background: #252336;
+    color: #ffffff;
+    border: 2px solid #3d3b55;
+    border-radius: var(--radius-md);
+    padding: 14px 0;
+    font-family: var(--font-pixel);
+    font-size: 1.25rem;
+    font-weight: 900;
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #13121d;
+    transition: all 0.08s ease;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:active,
+.btn-pad:active,
+.control-btn.pressed,
+.btn-pad.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #13121d;
+    background-color: #38354f;
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+/* 모션 감소 접근성 대응 */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

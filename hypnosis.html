@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>🌀 최면 착시 | Woo.Fun 레트로 아케이드</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body {
+      background-color: var(--bg-dark, #14131d);
+      color: var(--text-main, #ffffff);
+      font-family: var(--font-sans, 'Pretendard', sans-serif);
+      height: 100vh;
+      height: 100dvh;
+      height: calc(var(--vh, 1vh) * 100);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    /* 캔버스 영역 */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background-color: #000000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    /* 레트로 아케이드 하단 컨트롤 바 */
+    .controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #191826;
+      border: 2px solid var(--panel-border, #3b3955);
+      padding: 10px 18px;
+      border-radius: var(--radius-lg, 16px);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      z-index: 5;
+      width: 92%;
+      max-width: 520px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .control-group label {
+      font-family: var(--font-pixel, monospace);
+      font-size: 12px;
+      color: var(--gold, #f1c40f);
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--gold, #f1c40f);
+      height: 6px;
+      background: #252336;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--gold, #f1c40f);
+      outline-offset: 3px;
+    }
+
+    select {
+      background: #252336;
+      color: #fff;
+      border: 1px solid #4a4768;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm, 8px);
+      font-family: var(--font-pixel, monospace);
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+
+    select:focus-visible {
+      outline: 2px solid var(--gold, #f1c40f);
+      outline-offset: 2px;
+      border-color: var(--gold, #f1c40f);
+    }
+
+    select option {
+      background: #191826;
+      color: #fff;
+    }
+
+    .icon-btn {
+      background: linear-gradient(180deg, #252336 0%, #1c1b29 100%);
+      border: 2px solid var(--panel-border, #3b3955);
+      color: var(--text-main, #ffffff);
+      padding: 7px 14px;
+      border-radius: var(--radius-sm, 8px);
+      font-family: var(--font-pixel, monospace);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #100f17;
+      transition: all 0.08s ease;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .icon-btn:hover {
+      background: #332f48;
+      border-color: var(--gold, #f1c40f);
+      color: var(--gold, #f1c40f);
+    }
+
+    .icon-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 #100f17;
+    }
+
+    .hint {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 13, 22, 0.85);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      padding: 6px 16px;
+      border-radius: var(--radius-md, 12px);
+      color: var(--text-sub, #d5d9e2);
+      font-family: var(--font-pixel, monospace);
+      font-size: 12px;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      white-space: nowrap;
+      border: 1px solid var(--panel-border, #3b3955);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      z-index: 4;
+    }
+  </style>
+</head>
+<body>
+  <a href="#container" class="skip-link">캔버스 영역 바로가기</a>
+
+  <!-- 공통 레트로 아케이드 헤더 바 -->
+  <header class="arcade-header-bar" role="banner">
+    <div class="header-left">
+      <a href="index.html" class="btn-nav-hub" title="아케이드 허브 홈으로">
+        <span aria-hidden="true">◀</span> <span>HUB</span>
+      </a>
+    </div>
+    
+    <div class="title-container">
+      <h1 class="title">🌀 최면 착시</h1>
+    </div>
+
+    <div class="header-right">
+      <button type="button" class="btn-nav-hub" id="reset-center-btn" aria-label="중심점을 화면 정중앙으로 복귀" style="border-color: var(--teal, #00cec9); color: var(--teal, #00cec9); box-shadow: 0 2px 0 var(--teal-shadow, #009895);">
+        <span aria-hidden="true">📍</span> <span>원위치</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 캔버스 및 컨트롤러 -->
+  <main class="canvas-container" id="container">
+    <div class="hint" id="hint" role="status" aria-live="polite">화면을 드래그하여 중심점을 이동해보세요! (더블클릭/더블탭: 원위치)</div>
+    <canvas id="canvas" role="img" aria-label="최면 착시 애니메이션 화면 (드래그하여 중심 이동 가능)"></canvas>
+    
+    <div class="controls" role="toolbar" aria-label="최면 애니메이션 제어">
+      <div class="control-group">
+        <label for="pattern">모양</label>
+        <select id="pattern" aria-label="최면 패턴 모양">
+          <option value="square">네모</option>
+          <option value="diamond">다이아몬드</option>
+          <option value="cube">육각 입체 (큐브)</option>
+          <option value="tribolt">트라이볼트 (착시)</option>
+          <option value="spiral">은하수 (소용돌이)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="speed">속도</label>
+        <input type="range" id="speed" min="0.5" max="4" step="0.1" value="1.5" aria-label="회전 및 변화 속도">
+      </div>
+
+      <button type="button" class="icon-btn" id="reverse-btn" aria-pressed="false">🔄 반전</button>
+    </div>
+  </main>
+
+  <script>
+    'use strict';
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // alpha: false로 GPU 렌더링 최적화
+    const container = document.getElementById('container');
+    const speedInput = document.getElementById('speed');
+    const patternSelect = document.getElementById('pattern');
+    const reverseBtn = document.getElementById('reverse-btn');
+    const resetCenterBtn = document.getElementById('reset-center-btn');
+    const hint = document.getElementById('hint');
+
+    // 모바일 주소창 100dvh 대응
+    function setScreenHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', setScreenHeight, { passive: true });
+    setScreenHeight();
+
+    // 레이어 수를 50개로 최적화하여 렉 방지 및 퍼포먼스 극대화
+    const NUM_LAYERS = 50;
+    let t = 0;
+    let speedMultiplier = 1.5;
+    let direction = 1;
+    let currentPattern = 'square';
+
+    let width = 0;
+    let height = 0;
+    let centerX = 0;
+    let centerY = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let maxRadius = 100;
+    let gap = 2;
+    let isInitialized = false;
+
+    // 모션 최소화 미디어 쿼리 감지
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let isReducedMotion = motionQuery.matches;
+    motionQuery.addEventListener('change', (e) => {
+      isReducedMotion = e.matches;
+    });
+
+    // Retina 디스플레이 최적화 (GPU 부하 방지를 위해 dpr 1.5로 제한)
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      width = container.clientWidth || window.innerWidth;
+      height = container.clientHeight || (window.innerHeight - 60);
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if (!isInitialized) {
+        centerX = width / 2;
+        centerY = height / 2;
+        targetX = centerX;
+        targetY = centerY;
+        isInitialized = true;
+      }
+
+      maxRadius = Math.hypot(width, height) * 0.7;
+      gap = maxRadius / NUM_LAYERS;
+    }
+
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+    resizeCanvas();
+
+    function resetCenter() {
+      targetX = width / 2;
+      targetY = height / 2;
+      resetCenterBtn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        resetCenterBtn.style.transform = '';
+      }, 150);
+    }
+
+    resetCenterBtn.addEventListener('click', resetCenter);
+    canvas.addEventListener('dblclick', resetCenter);
+
+    speedInput.addEventListener('input', (e) => {
+      speedMultiplier = parseFloat(e.target.value) || 1.5;
+    });
+
+    patternSelect.addEventListener('change', (e) => {
+      currentPattern = e.target.value;
+    });
+
+    reverseBtn.addEventListener('click', () => {
+      direction *= -1;
+      const isReversed = direction === -1;
+      reverseBtn.setAttribute('aria-pressed', isReversed ? 'true' : 'false');
+      reverseBtn.style.background = isReversed ? 'var(--accent, #00d2d3)' : 'rgba(255, 255, 255, 0.12)';
+      reverseBtn.style.color = isReversed ? '#0b1e1e' : 'var(--text-main, #ffffff)';
+    });
+
+    // 포인터 이벤트(Pointer Events)를 통한 마우스/터치 통합 인터랙션
+    let activePointerId = null;
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+
+    function updateTargetFromPointer(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      targetX = clientX - rect.left;
+      targetY = clientY - rect.top;
+      if (hint.style.opacity !== '0') {
+        hint.style.opacity = '0';
+      }
+    }
+
+    function handlePointerDown(e) {
+      // 주 버튼(마우스 좌클릭 또는 터치)만 반응
+      if (e.button !== 0) return;
+
+      const now = Date.now();
+      const dist = Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY);
+      // 모바일 더블탭 또는 빠른 더블클릭 감지
+      if (now - lastTapTime < 320 && dist < 36) {
+        resetCenter();
+        lastTapTime = 0;
+        return;
+      }
+      lastTapTime = now;
+      lastTapX = e.clientX;
+      lastTapY = e.clientY;
+
+      activePointerId = e.pointerId;
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (err) {
+        // 일부 환경 예외 무시
+      }
+      updateTargetFromPointer(e.clientX, e.clientY);
+    }
+
+    function handlePointerMove(e) {
+      if (activePointerId === e.pointerId) {
+        updateTargetFromPointer(e.clientX, e.clientY);
+      }
+    }
+
+    function handlePointerUp(e) {
+      if (activePointerId === e.pointerId) {
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        activePointerId = null;
+      }
+    }
+
+    function handlePointerCancel(e) {
+      if (activePointerId === e.pointerId) {
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        activePointerId = null;
+      }
+    }
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('pointercancel', handlePointerCancel);
+
+    // 삼각함수 캐싱을 활용한 고속 배치 렌더링 함수들
+
+    // 1. 네모 (정직한 정방형 회전)
+    function drawSquare(size, angle) {
+      const c = Math.cos(angle), s = Math.sin(angle);
+      const dx = size * c, dy = size * s;
+      ctx.moveTo(centerX + dx, centerY + dy);
+      ctx.lineTo(centerX - dy, centerY + dx);
+      ctx.lineTo(centerX - dx, centerY - dy);
+      ctx.lineTo(centerX + dy, centerY - dx);
+      ctx.closePath();
+    }
+
+    // 2. 다이아몬드 (교차 회전 & 호흡 효과)
+    function drawDiamond(size, angle, i) {
+      const pulse = size * (1 + 0.15 * Math.sin(t * 0.05 + i * 0.2));
+      const diaAngle = -angle * 1.5 + Math.PI / 4;
+      const c = Math.cos(diaAngle), s = Math.sin(diaAngle);
+      const dx = pulse * c, dy = pulse * s;
+      ctx.moveTo(centerX + dx, centerY + dy);
+      ctx.lineTo(centerX - dy, centerY + dx);
+      ctx.lineTo(centerX - dx, centerY - dy);
+      ctx.lineTo(centerX + dy, centerY - dx);
+      ctx.closePath();
+    }
+
+    // 3. 육각 입체 큐브 (아이소메트릭)
+    function drawCube(size, angle) {
+      for (let i = 0; i < 6; i++) {
+        const theta = angle + (i * 1.047197551); // 60도
+        const x = centerX + size * Math.cos(theta);
+        const y = centerY + size * Math.sin(theta);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      for (let i = 0; i < 6; i += 2) {
+        const theta = angle + (i * 1.047197551);
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(centerX + size * Math.cos(theta), centerY + size * Math.sin(theta));
+      }
+    }
+
+    // 4. 트라이볼트 (3개의 번개 착시 선)
+    function drawTribolt(size, angle) {
+      for (let i = 0; i < 3; i++) {
+        const base = angle + (i * 2.094395102); // 120도
+        const x1 = centerX + size * Math.cos(base);
+        const y1 = centerY + size * Math.sin(base);
+        const x2 = centerX + (size * 0.5) * Math.cos(base + 0.8);
+        const y2 = centerY + (size * 0.5) * Math.sin(base + 0.8);
+        const x3 = centerX + size * Math.cos(base + 1.4);
+        const y3 = centerY + size * Math.sin(base + 1.4);
+
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.lineTo(x3, y3);
+      }
+    }
+
+    // 5. 은하수 소용돌이 (4중 나선)
+    function drawSpiral(size, angle) {
+      const nextSize = size + gap;
+      for (let i = 0; i < 4; i++) {
+        const theta = angle + (i * 1.570796327); // 90도
+        const nextTheta = theta + 0.35;
+        ctx.moveTo(centerX + size * Math.cos(theta), centerY + size * Math.sin(theta));
+        ctx.lineTo(centerX + nextSize * Math.cos(nextTheta), centerY + nextSize * Math.sin(nextTheta));
+      }
+    }
+
+    // 델타 타임(Delta Time) 기반 렌더링 루프
+    let lastTime = 0;
+
+    function render(currentTime) {
+      if (!lastTime) lastTime = currentTime;
+      const deltaMs = Math.min(currentTime - lastTime, 100);
+      lastTime = currentTime;
+      const timeScale = deltaMs / (1000 / 60);
+
+      // prefers-reduced-motion 활성화 시 완만한 속도로 동작
+      const effectiveSpeed = isReducedMotion ? speedMultiplier * 0.2 : speedMultiplier;
+
+      // 부드러운 중심점 보간 (lerp)
+      const lerpAmount = 1 - Math.pow(1 - 0.12, timeScale);
+      centerX += (targetX - centerX) * lerpAmount;
+      centerY += (targetY - centerY) * lerpAmount;
+
+      // 캔버스 잔상 없이 고속 클리어
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+      ctx.lineWidth = 2.5;
+
+      // 레이어 반복 렌더링
+      for (let i = 0; i < NUM_LAYERS; i++) {
+        const size = (i * gap + t * 3 * effectiveSpeed) % maxRadius;
+        if (size < 2) continue;
+
+        const angle = (i * 0.08 + t * 0.02 * effectiveSpeed) * direction;
+        const hue = (i * 5 + t * 2 * effectiveSpeed) % 360;
+
+        ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+        
+        ctx.beginPath();
+        if (currentPattern === 'square') {
+          drawSquare(size, angle);
+        } else if (currentPattern === 'diamond') {
+          drawDiamond(size, angle, i);
+        } else if (currentPattern === 'cube') {
+          drawCube(size, angle * 0.5);
+        } else if (currentPattern === 'tribolt') {
+          drawTribolt(size, angle);
+        } else if (currentPattern === 'spiral') {
+          drawSpiral(size, angle);
+        }
+        ctx.stroke();
+      }
+
+      t += 1 * timeScale;
+      requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

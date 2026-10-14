@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🕹️ WOO.FUN | 추억의 2000s 플래시 게임 & 레트로 아케이드 포털</title>
+
+    <!-- SEO & 소셜 메타 태그 -->
+    <meta name="description" content="2000년대 감성의 플래시 게임과 오락실 레트로 아케이드 게임을 브라우저에서 바로 즐기세요!">
+    <meta name="keywords" content="플래시게임, 2000년대게임, 레트로게임, 아케이드, 똥피하기, 벽돌깨기, 스틸레이서, 오락실게임, 웹게임">
+    <meta name="author" content="Woo.Fun">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Woo.Fun Retro Flash Arcade">
+    <meta property="og:title" content="🕹️ WOO.FUN | 추억의 2000s 플래시 게임 & 레트로 아케이드">
+    <meta property="og:description" content="추억의 2000년대 플래시 감성! 오락실 캐비닛 속으로 코인을 넣고 지금 플레이해보세요.">
+    <meta property="og:image" content="Poo_Ch.png">
+    <meta property="og:url" content="index.html">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- 파비콘 및 공통 스타일 -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E<text y=%2226%22 font-size=%2228%22>🕹️</text></svg>">
+    <link rel="stylesheet" href="common.css">
+
+    <style>
+        /* ==========================================================================
+           0. 레트로 웹폰트 & 전역 테마 토큰
+           ========================================================================== */
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        :root {
+            /* 레트로 아케이드 콘솔 컬러 */
+            --retro-bg: #14131d;
+            --retro-card-bg: #1e1d2c;
+            --retro-card-border: #3b3955;
+            --retro-gold: #f1c40f;
+            --retro-gold-shadow: #b7950b;
+            --retro-red: #e74c3c;
+            --retro-red-shadow: #962d22;
+            --retro-green: #2ecc71;
+            --retro-green-shadow: #1e8449;
+            --retro-cyan: #00cec9;
+            --retro-cyan-shadow: #009895;
+            --retro-purple: #9b59b6;
+            --retro-cream: #fdfbf7;
+            --retro-muted: #95a5a6;
+
+            /* 폰트 스택 */
+            --font-pixel: 'DungGeunMo', 'Press Start 2P', 'Courier New', monospace;
+            --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-body);
+            background-color: var(--retro-bg);
+            color: #e4e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(241, 196, 15, 0.08) 0%, transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
+        }
+
+        /* CRT 스캔라인 오버레이 (토글 지원) */
+        #crt-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9990;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            opacity: 0.6;
+            display: block;
+            transition: opacity 0.3s ease;
+        }
+
+        body.no-crt #crt-overlay {
+            display: none;
+        }
+
+        /* 본문 바로가기 링크 */
+        .skip-link {
+            position: absolute;
+            top: -50px;
+            left: 16px;
+            background: var(--retro-gold);
+            color: #111;
+            padding: 10px 18px;
+            font-weight: 900;
+            border-radius: 6px;
+            z-index: 10000;
+            transition: top 0.2s ease;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .skip-link:focus {
+            top: 14px;
+        }
+
+        /* ==========================================================================
+           1. 오락실 마퀴 헤더 (Marquee Top Bar)
+           ========================================================================== */
+        .retro-marquee-header {
+            width: 100%;
+            background: #111019;
+            border-bottom: 3px solid #2d2b40;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .header-logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .arcade-cabinet-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #252336;
+            border: 2px solid var(--retro-gold);
+            border-radius: 8px;
+            padding: 5px 12px;
+            box-shadow: 0 3px 0 var(--retro-gold-shadow);
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.1s ease;
+        }
+
+        .arcade-cabinet-badge:hover {
+            transform: translateY(-1px);
+        }
+
+        .cabinet-icon {
+            font-size: 20px;
+        }
+
+        .cabinet-title {
+            font-family: var(--font-pixel);
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--retro-gold);
+            letter-spacing: 1.5px;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        /* 헤더 중앙 정보 (INSERT COIN & CREDIT & 랜덤 뽑기 버튼) */
+        .header-marquee-center {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .blink-insert-coin {
+            font-family: var(--font-pixel);
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--retro-red);
+            background: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.4);
+            padding: 5px 10px;
+            border-radius: 6px;
+            letter-spacing: 1px;
+            animation: retro-blink 1.2s infinite;
+        }
+
+        @keyframes retro-blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        .credit-box {
+            font-family: var(--font-pixel);
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--retro-green);
+            background: #091a10;
+            border: 1px solid var(--retro-green);
+            padding: 5px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* CREDIT 바로 옆에 배치된 콤팩트 랜덤 뽑기 버튼 */
+        .header-roulette-btn {
+            background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+            color: #fff;
+            border: 1px solid #ff7675;
+            font-family: var(--font-pixel);
+            font-size: 12px;
+            font-weight: 900;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 var(--retro-red-shadow);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .header-roulette-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 0 var(--retro-red-shadow);
+            background: linear-gradient(180deg, #ff5252 0%, #d63031 100%);
+        }
+
+        .header-roulette-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--retro-red-shadow);
+        }
+
+        .header-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 상단 미니 토글/액션 버튼 */
+        .header-pill-btn {
+            background: #252336;
+            color: #fff;
+            border: 1px solid #484566;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            box-shadow: 0 2px 0 #14131d;
+            transition: all 0.15s ease;
+        }
+
+        .header-pill-btn:hover {
+            background: #34314c;
+            border-color: var(--retro-gold);
+            color: var(--retro-gold);
+        }
+
+        .header-pill-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        /* ==========================================================================
+           2. 오락실 간판 히어로 배너 (심플하고 깔끔한 타이틀)
+           ========================================================================== */
+        .hero-banner {
+            width: 92%;
+            max-width: 1080px;
+            margin: 28px auto 28px;
+            background: linear-gradient(180deg, #1d1b2c 0%, #171622 100%);
+            border: 3px solid #36344d;
+            border-radius: 20px;
+            padding: 24px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                inset 0 0 30px rgba(0, 0, 0, 0.7),
+                0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--retro-red), var(--retro-gold), var(--retro-cyan), var(--retro-green));
+        }
+
+        .hero-banner h1 {
+            font-family: var(--font-pixel);
+            font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+            color: #fff;
+            margin: 0;
+            letter-spacing: 2px;
+            text-shadow:
+                3px 3px 0px #000,
+                0 0 15px rgba(241, 196, 15, 0.4);
+        }
+
+        .hero-banner h1 span.gold {
+            color: var(--retro-gold);
+        }
+
+        /* ==========================================================================
+           3. 게임 카트리지 & 캐비닛 그리드 (.game-grid)
+           ========================================================================== */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 26px;
+            width: 92%;
+            max-width: 1080px;
+            padding-bottom: 70px;
+            align-items: start;
+        }
+
+        /* 게임 카드: 레트로 카트리지(팩) 모티프 */
+        .game-card {
+            background: var(--retro-card-bg);
+            border: 3px solid var(--retro-card-border);
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow:
+                0 10px 24px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #3b3955;
+            transition: background 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--retro-gold);
+            box-shadow:
+                0 16px 32px rgba(0, 0, 0, 0.7),
+                0 0 18px rgba(241, 196, 15, 0.2);
+        }
+
+        .game-card:hover::before {
+            background: var(--retro-gold);
+        }
+
+        /* 룰렛 하이라이트 애니메이션 */
+        .game-card.roulette-highlight {
+            border-color: var(--retro-red) !important;
+            box-shadow: 0 0 30px var(--retro-red) !important;
+            transform: scale(1.03) translateY(-6px);
+            animation: pulse-card 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-card {
+            0% {
+                box-shadow: 0 0 15px var(--retro-red);
+            }
+
+            100% {
+                box-shadow: 0 0 35px var(--retro-gold);
+            }
+        }
+
+        /* 카드 헤더 */
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .card-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* CRT 미니 화면 아이콘 */
+        .card-icon-screen {
+            width: 52px;
+            height: 52px;
+            background: #100f17;
+            border: 2px solid #36344d;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .card-icon-screen::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(255, 255, 255, 0.06), transparent);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .card-title {
+            font-family: var(--font-pixel);
+            font-size: 19px;
+            margin: 0;
+            color: #fff;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: #8c939f;
+            margin-top: 3px;
+        }
+
+        .toggle-btn {
+            background: #242234;
+            border: 1px solid #3e3c54;
+            color: #c4c7d0;
+            font-size: 16px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, border-color 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle-btn:hover {
+            color: var(--retro-gold);
+            border-color: var(--retro-gold);
+            background: #2f2d42;
+        }
+
+        .toggle-btn.open {
+            transform: rotate(180deg);
+            color: var(--retro-gold);
+            border-color: var(--retro-gold);
+        }
+
+        .card-desc {
+            font-size: 14.5px;
+            color: #c4c8d0;
+            margin: 0 0 18px 0;
+            line-height: 1.55;
+            word-break: keep-all;
+            min-height: 44px;
+        }
+
+        /* 💡 3D 아케이드 푸시 버튼 (.play-btn) */
+        .play-btn {
+            display: block;
+            text-align: center;
+            background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+            color: #042211;
+            text-decoration: none;
+            padding: 13px 0;
+            border-radius: 12px;
+            font-family: var(--font-pixel);
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            box-shadow:
+                0 5px 0 var(--retro-green-shadow),
+                0 8px 18px rgba(46, 204, 113, 0.3);
+            transition: all 0.08s ease;
+            user-select: none;
+            border: 1px solid #58d68d;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .play-btn:hover {
+            background: linear-gradient(180deg, #32d878 0%, #2ecc71 100%);
+            transform: translateY(-1px);
+            box-shadow:
+                0 6px 0 var(--retro-green-shadow),
+                0 10px 22px rgba(46, 204, 113, 0.4);
+        }
+
+        .play-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 var(--retro-green-shadow);
+        }
+
+        /* 특별 변형 버튼 */
+        .play-btn.btn-drive {
+            background: linear-gradient(180deg, #00cec9 0%, #009895 100%);
+            color: #022423;
+            border-color: #55efc4;
+            box-shadow: 0 5px 0 var(--retro-cyan-shadow), 0 8px 18px rgba(0, 206, 201, 0.3);
+        }
+
+        .play-btn.btn-drive:active {
+            box-shadow: 0 1px 0 var(--retro-cyan-shadow);
+        }
+
+        .play-btn.btn-skills {
+            background: linear-gradient(180deg, #f1c40f 0%, #d4ac0d 100%);
+            color: #211900;
+            border-color: #f7dc6f;
+            box-shadow: 0 5px 0 var(--retro-gold-shadow), 0 8px 18px rgba(241, 196, 15, 0.3);
+        }
+
+        .play-btn.btn-skills:active {
+            box-shadow: 0 1px 0 var(--retro-gold-shadow);
+        }
+
+        /* 접이식 상세 가이드 */
+        .card-details {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease;
+        }
+
+        .card-details.open {
+            max-height: 450px;
+            opacity: 1;
+            margin-top: 18px;
+            border-top: 2px dashed #393652;
+            padding-top: 16px;
+        }
+
+        .details-section {
+            background: #14131f;
+            border: 1px solid #2d2b40;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+
+        .details-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .details-section h4 {
+            margin: 0 0 6px 0;
+            color: var(--retro-gold);
+            font-size: 13.5px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .details-section ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #b0b5be;
+        }
+
+        .details-section li {
+            margin-bottom: 4px;
+        }
+
+        .details-section li:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ==========================================================================
+           4. 레트로 하단 푸터 (Footer)
+           ========================================================================== */
+        .arcade-footer {
+            width: 100%;
+            background: #111019;
+            border-top: 3px solid #2d2b40;
+            padding: 26px 20px 36px;
+            text-align: center;
+            color: #8c92a0;
+            font-size: 13px;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* ==========================================================================
+           5. 반응형 미디어 쿼리
+           ========================================================================== */
+        @media (max-width: 768px) {
+            .blink-insert-coin {
+                display: none;
+            }
+
+            .header-marquee-center {
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header-marquee-center {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 브라운관 스캔라인 필터 -->
+    <div id="crt-overlay" aria-hidden="true"></div>
+
+    <!-- 웹 접근성 스킵 링크 -->
+    <a class="skip-link" href="#main-content">본문 바로가기</a>
+
+    <!-- 상단 오락실 마퀴 헤더 -->
+    <header class="retro-marquee-header" role="banner">
+        <div class="header-logo-group">
+            <a href="index.html" class="arcade-cabinet-badge" title="Woo.Fun 홈으로">
+                <span class="cabinet-icon" aria-hidden="true">🕹️</span>
+                <span class="cabinet-title">WOO.FUN</span>
+            </a>
+        </div>
+
+        <!-- 헤더 중앙: INSERT COIN + CREDIT + 랜덤 게임 뽑기 버튼 -->
+        <div class="header-marquee-center" aria-label="오락실 상태">
+            <div class="blink-insert-coin" aria-hidden="true">★ INSERT COIN ★</div>
+            <div class="credit-box">
+                <span aria-hidden="true">🪙</span>
+                <span>CREDIT <strong id="header-credit-count">99</strong></span>
+            </div>
+            <button type="button" id="btn-lucky-roulette" class="header-roulette-btn" title="오늘 할 게임을 무작위로 추천합니다">
+                <span aria-hidden="true">🎲</span> <span>랜덤 게임 뽑기</span>
+            </button>
+        </div>
+
+        <div class="header-nav-actions">
+            <!-- CRT 스캔라인 토글 버튼 -->
+            <button type="button" id="btn-toggle-crt" class="header-pill-btn" aria-pressed="true"
+                title="브라운관 스캔라인 효과 켜기/끄기">
+                <span aria-hidden="true">📺</span> <span>CRT: ON</span>
+            </button>
+
+            <!-- 8비트 사운드 토글 버튼 -->
+            <button type="button" id="btn-toggle-sound" class="header-pill-btn" aria-pressed="true" title="효과음 켜기/끄기">
+                <span aria-hidden="true">🔊</span> <span>BEEP: ON</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 오락실 네온 간판 히어로 배너 (심플하고 깔끔한 타이틀) -->
+    <section class="hero-banner" aria-labelledby="hero-title">
+        <h1 id="hero-title">WOO.FUN <span class="gold">FLASH ARCADE</span></h1>
+    </section>
+
+    <!-- 게임 메인 그리드 (카테고리 분류 없이 바로 표시) -->
+    <main class="game-grid" id="main-content" aria-label="등록된 게임 및 웹 앱 목록">
+
+        <!-- 1. 스틸 레이서 (drive.html) -->
+        <article class="game-card" id="card-drive">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">🏎️</div>
+                    <div>
+                        <h2 class="card-title">스틸 레이서</h2>
+                        <div class="card-subtitle">Steel Racer: Neon Circuit</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="스틸 레이서 상세정보 펼치기"
+                    id="btn-toggle-drive">▼</button>
+            </div>
+            <p class="card-desc">2D 탑다운 네오 아케이드 레이싱! 5종의 다채로운 서킷과 부스터 질주를 즐겨보세요.</p>
+            <a href="drive.html" class="play-btn btn-drive" id="link-play-drive">레이스 시작 🏎️</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>5개 서킷(그랑프리·스피드웨이·마운틴·시케인·볼케이노) 중 선택해 3랩을 질주합니다.</li>
+                        <li>트랙 위 코인을 모으면 <b>600km/h 초고속 니트로 부스트</b>가 활성화됩니다!</li>
+                        <li>60Hz 결정론적 물리 루프로 부드러운 핸들링과 코너링을 보장합니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC:</b> 가속(W, ↑), 브레이크(S, ↓, Space), 조향(A, D, ←, →), 트랙복귀(R)</li>
+                        <li><b>모바일:</b> 화면 좌측 ◀ ▶ 조향 버튼, 우측 ▲ 가속 / ▼ 브레이크 페달</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 2. 똥피하기 (poo.html) -->
+        <article class="game-card" id="card-poo">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">💩</div>
+                    <div>
+                        <h2 class="card-title">똥피하기</h2>
+                        <div class="card-subtitle">Classic Dodging Game</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="똥피하기 상세정보 펼치기"
+                    id="btn-toggle-poo">▼</button>
+            </div>
+            <p class="card-desc">하늘에서 쏟아지는 똥과 무적 우산 아이템! 추억의 2000년대 감성 그대로 살아남으세요.</p>
+            <a href="poo.html" class="play-btn" id="link-play-poo">게임 시작 🎮</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>시간이 지날수록 똥이 기하급수적으로 빨라지고 빗발칩니다.</li>
+                        <li><b>무적 우산(1% 확률):</b> 먹으면 6초간 똥을 튕겨내며 무적이 됩니다!</li>
+                        <li><b>파멸의 일격:</b> 2000점이 넘으면 초고속 직격탄 똥이 머리 위로 떨어집니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC:</b> 좌우 방향키 (←, →) 또는 A, D</li>
+                        <li><b>모바일:</b> 화면 하단의 좌측/우측 버튼 터치</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 3. 벽돌 깨기 (brick.html) -->
+        <article class="game-card" id="card-brick">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">🧱</div>
+                    <div>
+                        <h2 class="card-title">벽돌 깨기</h2>
+                        <div class="card-subtitle">Brick Breaker Arkanoid</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="벽돌 깨기 상세정보 펼치기"
+                    id="btn-toggle-brick">▼</button>
+            </div>
+            <p class="card-desc">스테이지 클리어부터 코인 상점 업그레이드까지! 각도를 조준해 시원하게 부수세요.</p>
+            <a href="brick.html" class="play-btn" id="link-play-brick">게임 시작 🎮</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li><b>스테이지 모드:</b> 맵의 모든 블록을 파괴하고 다음 레벨로 진입하세요.</li>
+                        <li><b>코인 수집:</b> 코인 블록으로 공 개수를 늘리고 대미지를 업그레이드하세요.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC/모바일 공통:</b> 화면을 누른 채 드래그해 각도를 조준하고 손을 떼면 발사</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 4. 스네이크 게임 (snake.html) -->
+        <article class="game-card" id="card-snake">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">🐍</div>
+                    <div>
+                        <h2 class="card-title">스네이크 게임</h2>
+                        <div class="card-subtitle">Retro Snake 2D</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="스네이크 게임 상세정보 펼치기"
+                    id="btn-toggle-snake">▼</button>
+            </div>
+            <p class="card-desc">사과를 먹고 꼬리를 늘리며 맵 전체를 채우는 100% 퍼펙트 진 엔딩에 도전하세요!</p>
+            <a href="snake.html" class="play-btn" id="link-play-snake">게임 시작 🎮</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>자신의 몸통이나 벽에 부딪히지 않고 먹이를 수집하는 고전 룰입니다.</li>
+                        <li>화면을 100% 빈틈없이 채우면 특별한 '진 엔딩' 연출이 나타납니다!</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>PC:</b> 방향키(상하좌우) 또는 W, A, S, D</li>
+                        <li><b>모바일:</b> 화면 하단의 가상 방향 버튼 터치</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 5. 티렉스 런 (dinogame.html) -->
+        <article class="game-card" id="card-dino">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">🦖</div>
+                    <div>
+                        <h2 class="card-title">티렉스 런</h2>
+                        <div class="card-subtitle">Chrome T-Rex Infinite Run</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="티렉스 런 상세정보 펼치기"
+                    id="btn-toggle-dino">▼</button>
+            </div>
+            <p class="card-desc">점프와 급강하를 절묘하게 활용해 선인장과 익룡 떼를 피하며 끝없이 질주하세요.</p>
+            <a href="dinogame.html" class="play-btn" id="link-play-dino">게임 시작 🎮</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 게임 방식</h4>
+                    <ul>
+                        <li>달린 거리에 비례하여 러닝 속도가 점점 빨라집니다.</li>
+                        <li>점수가 높아지면 하늘에서 날아오는 익룡을 숙이기로 피해야 합니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>점프:</b> Space, W, ↑ 또는 모바일 점프 버튼</li>
+                        <li><b>숙이기:</b> Ctrl, S, ↓ 또는 모바일 숙이기 버튼</li>
+                        <li><b>💡 꿀팁(급강하):</b> 공중에 떴을 때 숙이기를 누르면 즉시 바닥으로 착지합니다!</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 6. 그래프 계산기 (graph.html) -->
+        <article class="game-card" id="card-graph">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">📈</div>
+                    <div>
+                        <h2 class="card-title">그래프 계산기</h2>
+                        <div class="card-subtitle">Multi-Function Grapher</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="그래프 계산기 상세정보 펼치기"
+                    id="btn-toggle-graph">▼</button>
+            </div>
+            <p class="card-desc">여러 개의 수학 함수식을 실시간으로 겹쳐 그리고 줌/팬으로 정밀하게 분석합니다.</p>
+            <a href="graph.html" class="play-btn" id="link-play-graph">계산기 실행 📈</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 핵심 기능</h4>
+                    <ul>
+                        <li>수식을 추가하고 실시간으로 타이핑하여 여러 수식을 겹쳐 그릴 수 있습니다.</li>
+                        <li>곱하기(*)를 생략하고 2x, 3sin(x) 처럼 직관적으로 입력해도 자동 변환됩니다.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 사용법</h4>
+                    <ul>
+                        <li><b>수식 추가 :</b> ➕ 버튼을 눌러 새 라인을 만들고 수식을 적으세요.</li>
+                        <li><b>확대/축소 :</b> 마우스 휠이나 터치 핀치 줌으로 탐색하세요.</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- 7. 최면 (hypnosis.html) -->
+        <article class="game-card" id="card-hypnosis">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon-screen" aria-hidden="true">🌀</div>
+                    <div>
+                        <h2 class="card-title">최면 착시</h2>
+                        <div class="card-subtitle">Hypnotic Illusion Studio</div>
+                    </div>
+                </div>
+                <button type="button" class="toggle-btn" aria-expanded="false" aria-label="최면 상세정보 펼치기"
+                    id="btn-toggle-hypnosis">▼</button>
+            </div>
+            <p class="card-desc">화려한 네온 무지개빛 기하학적 착시 패턴을 감상하고 중심점을 자유롭게 이동해보세요.</p>
+            <a href="hypnosis.html" class="play-btn" id="link-play-hypnosis">체험 시작 🌀</a>
+
+            <div class="card-details">
+                <div class="details-section">
+                    <h4>📜 체험 방식</h4>
+                    <ul>
+                        <li>네모, 다이아몬드, 육각 입체(큐브), 트라이볼트, 은하수 등 5가지 패턴 지원.</li>
+                        <li>하단 컨트롤러로 회전 속도 조절 및 역회전 🔄 토글 가능.</li>
+                    </ul>
+                </div>
+                <div class="details-section">
+                    <h4>⌨️ 조작법</h4>
+                    <ul>
+                        <li><b>중심점 이동:</b> 화면을 드래그하거나 터치하여 중심축 이동.</li>
+                        <li><b>원위치 리셋:</b> 화면 더블탭 또는 '📍 원위치' 버튼 클릭.</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+    </main>
+
+    <!-- 오락실 푸터 -->
+    <footer class="arcade-footer" role="contentinfo">
+        <div class="footer-content">
+            <p style="margin: 0;">
+                <strong>Woo.Fun Retro Flash Arcade</strong> © 2000-2026. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- ==========================================================================
+       6. 레트로 인터랙션 & 오디오 스크립트 (Vanilla JS)
+       ========================================================================== -->
+    <script>
+        // 1. Web Audio API 기반 8비트 레트로 비프음 합성기 (외부 사운드 파일 의존성 0)
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function playBeep(freq = 440, duration = 0.08, type = 'square') {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) audioCtx = new AudioContextClass();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // 오디오 미지원 환경 무시
+            }
+        }
+
+        // 2. 카드 접이식 상세정보 토글 (접근성 유지)
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playBeep(520, 0.06);
+                const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+                btn.setAttribute('aria-expanded', !isExpanded);
+                btn.classList.toggle('open');
+                const card = btn.closest('.game-card');
+                if (card) {
+                    const details = card.querySelector('.card-details');
+                    if (details) details.classList.toggle('open');
+                }
+            });
+        });
+
+        // 3. CRT 스캔라인 토글
+        const crtBtn = document.getElementById('btn-toggle-crt');
+        let crtEnabled = true;
+        if (crtBtn) {
+            crtBtn.addEventListener('click', () => {
+                playBeep(660, 0.08);
+                crtEnabled = !crtEnabled;
+                document.body.classList.toggle('no-crt', !crtEnabled);
+                crtBtn.setAttribute('aria-pressed', crtEnabled ? 'true' : 'false');
+                crtBtn.querySelector('span:last-child').textContent = crtEnabled ? 'CRT: ON' : 'CRT: OFF';
+            });
+        }
+
+        // 4. 사운드 토글
+        const soundBtn = document.getElementById('btn-toggle-sound');
+        if (soundBtn) {
+            soundBtn.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                if (soundEnabled) playBeep(880, 0.08);
+                soundBtn.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
+                soundBtn.querySelector('span:last-child').textContent = soundEnabled ? 'BEEP: ON' : 'BEEP: OFF';
+            });
+        }
+
+        // 5. 버튼 호버 및 클릭 시 레트로 피드백 사운드
+        document.querySelectorAll('.play-btn, .header-roulette-btn').forEach(el => {
+            el.addEventListener('mouseenter', () => playBeep(330, 0.03));
+            el.addEventListener('click', () => playBeep(700, 0.08));
+        });
+
+        // 6. 상단 CREDIT 옆 오락실 랜덤 게임 룰렛 (INSERT COIN 추천기)
+        const rouletteBtn = document.getElementById('btn-lucky-roulette');
+        const creditEl = document.getElementById('header-credit-count');
+        const cards = Array.from(document.querySelectorAll('.game-card'));
+        let isRolling = false;
+
+        if (rouletteBtn) {
+            rouletteBtn.addEventListener('click', () => {
+                if (isRolling) return;
+                isRolling = true;
+
+                // 크레딧 감소 연출
+                if (creditEl) {
+                    const cur = parseInt(creditEl.textContent, 10) || 99;
+                    creditEl.textContent = Math.max(0, cur - 1);
+                }
+
+                cards.forEach(c => c.classList.remove('roulette-highlight'));
+
+                let rollCount = 0;
+                const maxRolls = 18;
+                let speed = 80;
+
+                function rollStep() {
+                    cards.forEach(c => c.classList.remove('roulette-highlight'));
+                    const randomIndex = Math.floor(Math.random() * cards.length);
+                    const pickedCard = cards[randomIndex];
+                    pickedCard.classList.add('roulette-highlight');
+                    playBeep(400 + (rollCount * 25), 0.04);
+
+                    rollCount++;
+                    if (rollCount < maxRolls) {
+                        speed += 15;
+                        setTimeout(rollStep, speed);
+                    } else {
+                        // 당첨!
+                        playBeep(880, 0.15);
+                        setTimeout(() => playBeep(1174, 0.25), 150);
+                        pickedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        isRolling = false;
+                    }
+                }
+
+                rollStep();
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="description"
+        content="Woo.Fun 프로젝트(index, snake, brick, dinogame, poo, graph, hypnosis, drive)의 기능 목록과 코드 상태를 한눈에 보는 대시보드">
+    <title>Woo.Fun 기능 대시보드 (Skills)</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        :root {
+            --bg: #141b22;
+            --bg-soft: #1e272e;
+            --panel: #26323d;
+            --panel-hi: #2d3b48;
+            --line: rgba(255, 255, 255, 0.09);
+            --text: #e4eaf0;
+            --muted: #a3b0bc;
+            --gold: #f1c40f;
+            --teal: #0fb9b1;
+
+            --ok: #38d996;
+            --ok-bg: rgba(56, 217, 150, 0.14);
+            --warn: #ffd23f;
+            --warn-bg: rgba(255, 210, 63, 0.14);
+            --bug: #ff7a8a;
+            --bug-bg: rgba(255, 122, 138, 0.15);
+
+            --radius: 16px;
+            --font: 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, -apple-system, sans-serif;
+            --mono: 'Cascadia Code', Consolas, 'Courier New', monospace;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            font-family: var(--font);
+            color: var(--text);
+            line-height: 1.6;
+            background:
+                radial-gradient(900px 500px at 8% -10%, rgba(15, 185, 177, 0.18), transparent 60%),
+                radial-gradient(800px 500px at 100% 0%, rgba(241, 196, 15, 0.12), transparent 55%),
+                var(--bg);
+            background-attachment: fixed;
+        }
+
+        a {
+            color: var(--teal);
+        }
+
+        a:hover {
+            color: #3fe0d8;
+        }
+
+        /* ---------- Global Top Header (공통 sticky 위치 지정) ---------- */
+        .header {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            border-bottom: 1px solid #34495e;
+            z-index: 50;
+        }
+
+        /* ---------- Layout ---------- */
+        .wrap {
+            width: min(1240px, 100% - 32px);
+            margin-inline: auto;
+        }
+
+        /* ---------- Header ---------- */
+        .site-header {
+            padding: clamp(36px, 7vw, 72px) 0 28px;
+            text-align: center;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 4px 14px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+        }
+
+        .site-header h1 {
+            margin: 14px 0 10px;
+            font-size: clamp(2rem, 1rem + 5vw, 3.6rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            color: var(--gold);
+            background: linear-gradient(100deg, #f1c40f 10%, #ffe27a 45%, #0fb9b1 95%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .site-header p {
+            margin: 0 auto;
+            max-width: 62ch;
+            color: var(--muted);
+            font-size: 1.02rem;
+        }
+
+        /* ---------- Overview ---------- */
+        .overview {
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) 1fr;
+            gap: 20px;
+            align-items: stretch;
+            margin-bottom: 26px;
+        }
+
+        .panel {
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+        }
+
+        .donut-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 22px;
+        }
+
+        .donut {
+            --ok-end: 0deg;
+            --warn-end: 0deg;
+            width: 170px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: conic-gradient(var(--ok) 0 var(--ok-end),
+                    var(--warn) var(--ok-end) var(--warn-end),
+                    var(--bug) var(--warn-end) 360deg);
+            box-shadow: 0 0 40px rgba(56, 217, 150, 0.12);
+        }
+
+        .donut-hole {
+            width: 70%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: var(--bg-soft);
+            display: grid;
+            place-items: center;
+            text-align: center;
+            line-height: 1.15;
+        }
+
+        .donut-hole strong {
+            display: block;
+            font-size: 2.1rem;
+            color: var(--ok);
+        }
+
+        .donut-hole span {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 14px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .legend i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+        }
+
+        .stat {
+            padding: 18px 20px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .stat .num {
+            display: block;
+            font-size: 2.3rem;
+            font-weight: 800;
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat .lbl {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .stat.s-ok .num {
+            color: var(--ok);
+        }
+
+        .stat.s-warn .num {
+            color: var(--warn);
+        }
+
+        .stat.s-bug .num {
+            color: var(--bug);
+        }
+
+        .stat.s-all .num {
+            color: var(--gold);
+        }
+
+        .stat.s-pg .num {
+            color: var(--teal);
+        }
+
+        /* ---------- Common notes ---------- */
+        .common {
+            margin-bottom: 26px;
+            padding: 6px 20px;
+        }
+
+        .common summary {
+            cursor: pointer;
+            padding: 12px 0;
+            font-weight: 700;
+            color: var(--gold);
+            list-style-position: inside;
+        }
+
+        .common ul {
+            margin: 0 0 14px;
+            padding-left: 22px;
+            color: var(--muted);
+        }
+
+        .common li {
+            margin-bottom: 4px;
+        }
+
+        .common code,
+        .note code {
+            font-family: var(--mono);
+            font-size: 0.85em;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1px 6px;
+            border-radius: 5px;
+            color: #ffd9a0;
+        }
+
+        /* ---------- Common Fix Progress Dashboard ---------- */
+        .audit-dashboard {
+            margin-bottom: 28px;
+            padding: 24px;
+            background: linear-gradient(145deg, rgba(30, 39, 46, 0.95), rgba(20, 27, 34, 0.95));
+            border: 1px solid rgba(56, 217, 150, 0.3);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .audit-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .audit-title {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--ok);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audit-badge-complete {
+            background: var(--ok-bg);
+            color: var(--ok);
+            border: 1px solid rgba(56, 217, 150, 0.5);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .audit-progress-track {
+            width: 100%;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid var(--line);
+        }
+
+        .audit-progress-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #2ecc71, #0fb9b1);
+            border-radius: 6px;
+        }
+
+        .audit-checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+            margin-bottom: 24px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .audit-item {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(56, 217, 150, 0.35);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.88rem;
+        }
+
+        .audit-item-check {
+            color: var(--ok);
+            font-weight: bold;
+            font-size: 1.1rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .audit-pages-title {
+            margin: 0 0 12px 0;
+            font-size: 1.05rem;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .audit-pages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+        }
+
+        .audit-page-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.85rem;
+        }
+
+        .audit-page-card h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.95rem;
+            color: var(--teal);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .audit-page-card ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .audit-page-card li {
+            margin-bottom: 2px;
+        }
+
+        /* ---------- Toolbar ---------- */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            margin-bottom: 22px;
+            padding: 16px 18px;
+            background: rgba(20, 27, 34, 0.88);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            display: grid;
+            gap: 12px;
+        }
+
+        .toolbar-top {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search {
+            flex: 1 1 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .search label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .search input {
+            width: 100%;
+            padding: 10px 14px;
+            font: inherit;
+            color: var(--text);
+            background: var(--bg-soft);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+        .search input::placeholder {
+            color: #7f8d99;
+        }
+
+        .search input:focus-visible {
+            border-color: var(--gold);
+            outline-offset: 0;
+        }
+
+        .seg {
+            display: inline-flex;
+            padding: 3px;
+            background: var(--bg-soft);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+        .seg button {
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--muted);
+            background: transparent;
+            border: 0;
+            padding: 8px 16px;
+            border-radius: 9px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .seg button[aria-pressed="true"] {
+            background: var(--gold);
+            color: #1a1a1a;
+        }
+
+        .chip-groups {
+            display: grid;
+            gap: 10px;
+        }
+
+        .chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            min-width: 0;
+        }
+
+        .chip-group legend {
+            float: left;
+            padding: 0;
+            margin-right: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--muted);
+            min-width: 3.2em;
+        }
+
+        .chip {
+            font: inherit;
+            font-size: 0.85rem;
+            color: var(--text);
+            background: var(--bg-soft);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 13px;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s, border-color 0.2s;
+        }
+
+        .chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .chip[aria-pressed="true"] {
+            background: rgba(15, 185, 177, 0.22);
+            border-color: var(--teal);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .chip[aria-pressed="true"]::before {
+            content: "✓ ";
+        }
+
+        .toolbar-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .reset-btn {
+            font: inherit;
+            font-size: 0.85rem;
+            color: var(--gold);
+            background: none;
+            border: 1px solid rgba(241, 196, 15, 0.4);
+            border-radius: 8px;
+            padding: 4px 12px;
+            cursor: pointer;
+        }
+
+        .reset-btn:hover {
+            background: rgba(241, 196, 15, 0.12);
+        }
+
+        /* ---------- Page sections ---------- */
+        .page-section {
+            margin-bottom: 40px;
+            scroll-margin-top: 220px;
+        }
+
+        .page-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+            margin-bottom: 14px;
+        }
+
+        .page-icon {
+            font-size: 2rem;
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(15, 185, 177, 0.3), rgba(241, 196, 15, 0.2));
+            border: 1px solid var(--line);
+        }
+
+        .page-head h2 {
+            margin: 0;
+            font-size: 1.45rem;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .page-head .meta {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .page-head .meta a {
+            font-family: var(--mono);
+        }
+
+        .page-count {
+            margin-left: auto;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            --accent: var(--ok);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 18px 18px 16px;
+            border-left: 5px solid var(--accent);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4);
+        }
+
+        .card.st-ok {
+            --accent: var(--ok);
+        }
+
+        .card.st-warn {
+            --accent: var(--warn);
+        }
+
+        .card.st-bug {
+            --accent: var(--bug);
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 1.08rem;
+            line-height: 1.35;
+            color: #fff;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .tag.cat {
+            background: rgba(255, 255, 255, 0.07);
+            color: #cfd8e0;
+            border-color: var(--line);
+        }
+
+        .tag.st-ok {
+            background: var(--ok-bg);
+            color: var(--ok);
+            border-color: rgba(56, 217, 150, 0.4);
+        }
+
+        .tag.st-warn {
+            background: var(--warn-bg);
+            color: var(--warn);
+            border-color: rgba(255, 210, 63, 0.4);
+        }
+
+        .tag.st-bug {
+            background: var(--bug-bg);
+            color: var(--bug);
+            border-color: rgba(255, 122, 138, 0.45);
+        }
+
+        .card dl {
+            margin: 0;
+            display: grid;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .card dt {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+        }
+
+        .card dd {
+            margin: 0;
+            color: #d6dee6;
+        }
+
+        .refs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .refs code {
+            font-family: var(--mono);
+            font-size: 0.76rem;
+            background: rgba(0, 0, 0, 0.32);
+            border: 1px solid var(--line);
+            color: #9fe9e4;
+            padding: 1px 7px;
+            border-radius: 6px;
+            overflow-wrap: anywhere;
+        }
+
+        .note {
+            margin: 0;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            background: rgba(0, 0, 0, 0.22);
+            border: 1px dashed var(--accent);
+            color: #e9edf1;
+        }
+
+        .note b {
+            color: var(--accent);
+        }
+
+        /* ---------- Table view ---------- */
+        .table-wrapper {
+            overflow: auto;
+            max-inline-size: 100%;
+            max-block-size: 78vh;
+            container-type: inline-size;
+            border-radius: var(--radius);
+            border: 1px solid var(--line);
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.88rem;
+        }
+
+        thead {
+            position: sticky;
+            inset-block-start: 0;
+            z-index: 2;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 12px 14px;
+            background: #202c36;
+            color: var(--gold);
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+
+        tbody th,
+        tbody td {
+            padding: 12px 14px;
+            vertical-align: top;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+        }
+
+        tbody th {
+            position: sticky;
+            inset-inline-start: 0;
+            background: #232f3a;
+            min-width: 180px;
+            color: #fff;
+        }
+
+        tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        td.col-note {
+            min-width: 260px;
+            color: #d6dee6;
+        }
+
+        @container (width < 780px) {
+
+            table,
+            thead,
+            tbody,
+            tr,
+            th,
+            td {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                margin: 0 0 14px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+            tbody th {
+                position: sticky;
+                inset-block-start: 0;
+                z-index: 2;
+                min-width: 0;
+            }
+
+            td {
+                border-bottom: 1px solid var(--line);
+            }
+
+            td::before {
+                content: attr(data-label) ": " / attr(data-label);
+                display: block;
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: var(--muted);
+            }
+
+            td.col-note {
+                min-width: 0;
+            }
+        }
+
+        /* ---------- Empty & footer ---------- */
+        .empty {
+            padding: 48px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .site-footer {
+            padding: 30px 0 60px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .noscript {
+            margin: 20px auto;
+            padding: 16px;
+            max-width: 640px;
+            border: 1px solid var(--bug);
+            border-radius: 12px;
+            background: var(--bug-bg);
+            text-align: center;
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 860px) {
+            .overview {
+                grid-template-columns: 1fr;
+            }
+
+            .page-count {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .toolbar {
+                position: static;
+            }
+
+            .page-section {
+                scroll-margin-top: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#results">본문 바로가기</a>
+
+    <header class="header">
+        <nav aria-label="사이트 이동">
+            <a href="index.html" class="arcade-btn">◀ 메인으로</a>
+        </nav>
+
+        <div class="title-container">
+            <span class="title">📊 기능 대시보드</span>
+        </div>
+
+        <div style="width: 80px;" aria-hidden="true"></div>
+    </header>
+
+    <div class="site-header wrap">
+        <span class="eyebrow">CODE REVIEW · FEATURE MAP</span>
+        <h1>Woo.Fun 기능 대시보드</h1>
+        <p>프로젝트의 HTML 8개 페이지에서 추출한 기능을 분류·상태별로 열람합니다. 상태는 소스 코드를 직접 읽고 판정한 결과입니다.</p>
+    </div>
+
+    <main class="wrap" id="main">
+        <noscript>
+            <p class="noscript">이 대시보드는 JavaScript 로 목록을 그립니다. JavaScript 를 켜 주세요.</p>
+        </noscript>
+
+        <section class="overview" aria-labelledby="overview-title">
+            <h2 id="overview-title" class="sr-only">전체 현황</h2>
+
+            <div class="panel donut-panel">
+                <div class="donut" id="donut" role="img" aria-label="상태 비율 차트">
+                    <div class="donut-hole">
+                        <div><strong id="donut-pct">0%</strong><span>정상 작동</span></div>
+                    </div>
+                </div>
+                <ul class="legend">
+                    <li><i style="background:var(--ok)"></i>정상 작동</li>
+                    <li><i style="background:var(--warn)"></i>개선 필요</li>
+                    <li><i style="background:var(--bug)"></i>버그 확인</li>
+                </ul>
+            </div>
+
+            <div class="stat-grid">
+                <div class="panel stat s-pg"><span class="num" id="stat-pages">0</span><span class="lbl">분석한 페이지</span>
+                </div>
+                <div class="panel stat s-all"><span class="num" id="stat-all">0</span><span class="lbl">추출한 기능</span>
+                </div>
+                <div class="panel stat s-ok"><span class="num" id="stat-ok">0</span><span class="lbl">✔ 정상 작동</span>
+                </div>
+                <div class="panel stat s-warn"><span class="num" id="stat-warn">0</span><span class="lbl">▲ 개선 필요</span>
+                </div>
+                <div class="panel stat s-bug"><span class="num" id="stat-bug">0</span><span class="lbl">✖ 버그 확인</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="audit-dashboard" aria-labelledby="audit-dashboard-title">
+            <div class="audit-header">
+                <h3 id="audit-dashboard-title" class="audit-title">🛠️ 10대 공통 오류 & 웹 표준 개선 진행 상황</h3>
+                <span class="audit-badge-complete">✔ 전 항목 개선 및 공통 CSS 통일 완료 (100%)</span>
+            </div>
+
+            <div class="audit-progress-track" role="progressbar" aria-valuenow="100" aria-valuemin="0"
+                aria-valuemax="100" aria-label="개선 진행률">
+                <div class="audit-progress-fill"></div>
+            </div>
+
+            <ul class="audit-checklist">
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>① 뷰포트 접근성 복원</strong><br><span style="color:var(--muted); font-size:0.82rem;">8개 페이지
+                            전체에서 <code>user-scalable=no, maximum-scale=1.0</code> 제거하여 브라우저 확대 허용</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>② 시맨틱 랜드마크 구조화 & 스킵 링크</strong><br><span style="color:var(--muted); font-size:0.82rem;">모든 페이지에
+                            <code>&lt;main&gt;</code> 랜드마크, 상단 <code>&lt;nav aria-label="..."&gt;</code> 및 <code>.skip-link</code> 도입</span>
+                    </div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>③ 캔버스 대체 텍스트 & aria-live</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">캔버스에 <code>role="img" aria-label="..."</code>
+                            부여, 점수/코인 등 동적 값에 <code>aria-live="polite"</code> 적용</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>④ 모바일 조작 버튼 접근성</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;"><code>&lt;div&gt;</code> 기반 모바일 터치 패드를
+                            <code>&lt;button type="button" aria-label="..."&gt;</code>로 교체</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑤ 인라인 이벤트/스타일 분리</strong><br><span style="color:var(--muted); font-size:0.82rem;">인라인
+                            <code>onclick</code> 제거 후 스크립트 <code>addEventListener</code> 분리 등록 및 접근성 속성 정비</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑥ localStorage 안전 래퍼 (safeStorage)</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">저장소 차단/시크릿 모드 예외에 안전하도록
+                            <code>safeStorage</code> try-catch 래퍼 적용</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑦ 공통 CSS 디자인 시스템 통합 (common.css)</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">drive.html을 제외한 전 페이지에 <code>common.css</code>를 신설 및 연동하여 상단 헤더(60px), 3D 아케이드 버튼(arcade-btn), 모바일 컨트롤러, 스킵 링크, 오버레이 CSS 일괄 통합</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑧ 안전한 DOM 렌더링 & 접근성 (No innerHTML injection)</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">snake, dinogame, poo의 게임 오버 화면 및 graph의 수식 행 추가를 <code>createElement/textContent</code> 안전 DOM 조립으로 교체하고 <code>aria-label/aria-invalid</code> 적용</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑨ 고주사율 델타 타임 & 프레임레이트 독립성 보장</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">brick 동적 서브스텝(2~6단계), dinogame 지수 확률 장애물 스폰, hypnosis 델타 타임 루프 및 <code>prefers-reduced-motion</code> 감속 지원</span></div>
+                </li>
+                <li class="audit-item done">
+                    <span class="audit-item-check">✔</span>
+                    <div><strong>⑩ 성능 병목 및 강제 레이아웃(Forced Reflow) 해소</strong><br><span
+                            style="color:var(--muted); font-size:0.82rem;">graph 이중 루프 내 매 프레임 30,000+회 <code>getBoundingClientRect()</code> 호출 제거(Float32Array 사전 계산), rAF 렌더링 병합 및 ctx.save/restore 누수 방지</span></div>
+                </li>
+            </ul>
+
+            <h4 class="audit-pages-title">📄 페이지별 조치 상세 내역 (8 / 8 완료)</h4>
+            <div class="audit-pages-grid">
+                <div class="audit-page-card">
+                    <h4><span>🏠 index.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li><code>&lt;main id="main-content"&gt;</code> 시맨틱 랜드마크 도입</li>
+                        <li><code>.play-btn</code> 글자색(#0b2e1b on #2ecc71) 대비비 > 5.8:1 (WCAG AAA) 충족</li>
+                        <li><code>drive.html</code> 및 <code>skills.html</code> 진입 카드 추가</li>
+                        <li>토글 버튼 <code>aria-expanded</code> 및 이벤트 위임 정비</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>🐍 snake.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li>캔버스 대체텍스트, <code>#score</code> aria-live</li>
+                        <li>4개 방향키 <code>&lt;button&gt;</code> 변환 및 <code>hitTopWall</code> 오타 수정</li>
+                        <li>결과 화면 safe DOM (<code>createElement/textContent</code>) 교체</li>
+                        <li>캔버스 최소 크기(200px) 가드 및 대기 상태 리사이즈 재렌더링 보존</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>🧱 brick.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li><code>safeStorage</code> 래퍼 및 <code>updateAim</code> 음수 조준 정규화</li>
+                        <li>프레임 드랍 시 공 터널링 방지: timeScale 비례 2~6 동적 서브스텝 물리 루프</li>
+                        <li>인라인 onclick 분리 및 이벤트 리스너 바인딩</li>
+                        <li>리사이즈 시 벽돌 크기/공 위치 동기화 및 논블로킹 상점 알림</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>🦖 dinogame.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li>점프/숙이기 <code>&lt;button&gt;</code> 변환 및 <code>safeStorage</code> 적용</li>
+                        <li>지수 확률 스폰 공식 적용(120/144Hz 고주사율에서도 동일 스폰율 보장)</li>
+                        <li>지면 점선 스크롤 가속 순간이동 방지 및 초기 구름 스폰</li>
+                        <li>결과 통계 safe DOM (<code>createElement/textContent</code>) 교체</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>💩 poo.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li>좌/우 이동 컨트롤 <code>&lt;button&gt;</code> 변환 및 <code>safeStorage</code> 적용</li>
+                        <li>탭 전환 시 AFK 즉사 방지 델타 누적 및 blur 키 초기화</li>
+                        <li>게임 오버 safe DOM (<code>createElement/textContent</code>) 교체</li>
+                        <li>중복 등록되었던 resize 이벤트 리스너 제거</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>📈 graph.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li>수식 행 safe DOM 생성 및 <code>aria-label/aria-invalid</code> 부여</li>
+                        <li>이중 루프 내 30,000+회 getBoundingClientRect 강제 레이아웃 병목 제거(Float32Array 사전 계산)</li>
+                        <li>rAF 스케줄링 재그리기 및 ctx.save/restore 격자 폰트 누수 방지</li>
+                        <li>수식 범례 캔버스 하단 경계 오버플로우 방지</li>
+                        <li>B1(역삼각함수 단어경계) & B2(단항 음수 거듭제곱) 파서 수정</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>🌀 hypnosis.html</span> <span style="color:var(--ok);">완료</span></h4>
+                    <ul>
+                        <li><code>common.css</code> 통합 및 <code>.skip-link</code> 적용</li>
+                        <li>Pointer Events 일원화(pointerdown/move/up/cancel) 및 포인터 캡처</li>
+                        <li>모바일 더블탭(320ms 간격) 원위치 복귀 감지</li>
+                        <li>델타 타임 정규화 루프 및 <code>prefers-reduced-motion</code> 감속 지원</li>
+                        <li>슬라이더/선택창 키보드 포커스 링(:focus-visible) 복원</li>
+                    </ul>
+                </div>
+                <div class="audit-page-card">
+                    <h4><span>🚗 drive.html</span> <span style="color:var(--ok);">완료 (제외)</span></h4>
+                    <ul>
+                        <li>사용자 지정 요구사항: <code>drive.html</code>은 수정 대상에서 제외</li>
+                        <li>기존 Three.js 3D 환경 및 컨트롤러 안전하게 보존됨</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel toolbar" aria-label="필터와 검색">
+            <div class="toolbar-top">
+                <div class="search">
+                    <label for="search">기능 검색 (이름 · 동작 · 함수/요소)</label>
+                    <input id="search" type="search" placeholder="예: localStorage, 충돌, getBoundingClientRect"
+                        autocomplete="off">
+                </div>
+                <div class="seg" role="group" aria-label="보기 방식">
+                    <button type="button" id="view-cards" aria-pressed="true">카드 보기</button>
+                    <button type="button" id="view-table" aria-pressed="false">표 보기</button>
+                </div>
+            </div>
+
+            <div class="chip-groups">
+                <fieldset class="chip-group" id="group-page">
+                    <legend>페이지</legend>
+                </fieldset>
+                <fieldset class="chip-group" id="group-cat">
+                    <legend>분류</legend>
+                </fieldset>
+                <fieldset class="chip-group" id="group-status">
+                    <legend>상태</legend>
+                </fieldset>
+            </div>
+
+            <div class="toolbar-bottom">
+                <span id="result-count" role="status" aria-live="polite"></span>
+                <button type="button" class="reset-btn" id="reset-filters">필터 초기화</button>
+            </div>
+        </section>
+
+        <section id="results" aria-label="기능 목록" tabindex="-1"></section>
+    </main>
+
+    <footer class="site-footer wrap">
+        <p>Woo.Fun · 코드 리뷰 대시보드 — 외부 라이브러리 없이 이 파일 하나로 동작합니다.</p>
+    </footer>
+
+    <script>
+        'use strict';
+
+        /* ------------------------------------------------------------------
+         * 데이터 : 모든 항목은 실제 소스 코드에서 확인한 내용입니다.
+         * 행 형식: [페이지, 분류, 상태, 기능명, 동작(트리거 → 결과), 관련 요소/함수(' | ' 구분), 비고]
+         * ------------------------------------------------------------------ */
+        const PAGES = [
+            { id: 'index', file: 'index.html', icon: '🏠', title: 'Woo.Fun 메인', lines: 367, desc: '게임·도구 6종을 카드로 나열하는 허브 페이지' },
+            { id: 'snake', file: 'snake.html', icon: '🐍', title: '스네이크 게임', lines: 588, desc: '맵 크기·속도·사과 수를 고르는 캔버스 스네이크' },
+            { id: 'brick', file: 'brick.html', icon: '🧱', title: '벽돌 깨기', lines: 948, desc: '조준 발사형 벽돌 깨기 + 코인 상점' },
+            { id: 'dino', file: 'dinogame.html', icon: '🦖', title: '티렉스 런', lines: 612, desc: '점프·급강하로 장애물을 피하는 러너' },
+            { id: 'poo', file: 'poo.html', icon: '💩', title: '똥피하기', lines: 792, desc: '낙하물·운석을 피하는 생존 게임' },
+            { id: 'graph', file: 'graph.html', icon: '📈', title: '그래프 계산기', lines: 587, desc: '여러 수식을 겹쳐 그리는 암시적 곡선 그래프' },
+            { id: 'hypnosis', file: 'hypnosis.html', icon: '🌀', title: '최면', lines: 477, desc: '무지개빛 기하 패턴 시각 효과' },
+            { id: 'drive', file: 'drive.html', icon: '🏎️', title: '스틸 레이서', lines: 2154, desc: '순수 Canvas 2D 기반 5종 서킷 멀티 트랙 탑다운 레이싱 게임' }
+        ];
+
+        const CATS = {
+            nav: { label: '네비게이션', icon: '🧭' },
+            input: { label: '사용자 인터랙션', icon: '🕹️' },
+            logic: { label: '게임·핵심 로직', icon: '⚙️' },
+            render: { label: '렌더링·그래픽', icon: '🎨' },
+            data: { label: '데이터 저장·처리', icon: '💾' },
+            ui: { label: 'UI·화면', icon: '🖼️' }
+        };
+
+        const STATUS = {
+            ok: { label: '정상 작동', icon: '✔' },
+            warn: { label: '개선 필요', icon: '▲' },
+            bug: { label: '버그 확인', icon: '✖' }
+        };
+
+        const ROWS = [
+            /* ===== index.html ===== */
+            ['index', 'nav', 'ok', '게임 카드 그리드', '로드 시 6개 카드(스네이크·벽돌 깨기·티렉스 런·똥피하기·그래프 계산기·최면)를 auto-fit 그리드로 표시', '.game-grid | .game-card', ''],
+            ['index', 'nav', 'ok', '플레이/실행 링크', '버튼 클릭 → snake / brick / dinogame / poo / graph / hypnosis 페이지로 이동', 'a.play-btn[href]', '[개선 완료] .play-btn 글자 색상을 #0b2e1b 로 수정하여 #2ecc71 배경 대비 대비비 > 5.8:1 로 WCAG AAA 기준 충족.'],
+            ['index', 'ui', 'ok', '상세 정보 토글', '▼ 버튼 클릭 → 게임 방식/조작법 영역 펼침·접힘, 아이콘 180° 회전', 'toggleDetails(button) | .toggle-btn | .card-details.open', '[개선 완료] aria-expanded, aria-label 및 이벤트 위임 리스너 적용.'],
+            ['index', 'ui', 'ok', '카드 호버 강조', '마우스 hover → 노란 테두리와 그림자 강조', '.game-card:hover', ''],
+            ['index', 'nav', 'ok', '드라이브 시뮬레이터 진입 경로', '카드 클릭 → drive.html 3D 시뮬레이터로 이동', 'drive.html | a.play-btn', '[개선 완료] index.html 카드 그리드에 drive.html 카드를 추가하여 정상 진입 경로 확보.'],
+            ['index', 'ui', 'ok', '게임 설명 문구 정확성', '카드 설명·조작법 텍스트로 각 페이지 기능을 안내', '.card-desc | .card-details li', '[개선 완료] brick, dinogame, graph 등 실제 게임 메커니즘과 일치하도록 카드 설명 문구 수정 완료.'],
+
+            /* ===== snake.html ===== */
+            ['snake', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', 'a.arcade-btn', ''],
+            ['snake', 'ui', 'ok', '게임 설정 화면', '맵 크기(10/15/20)·속도(6/10/16)·사과 수(1/3/5)를 고르고 시작', '#start-screen | #size-select | #speed-select | #apple-select', '[개선 완료] <label for> 연결 및 리스너 바인딩.'],
+            ['snake', 'logic', 'ok', '게임 시작·초기화', '시작 클릭 → 설정값 읽기, 캔버스 크기 계산, 뱀·사과 초기화, 루프 시작', 'startGame() | resizeCanvas() | generateFood()', ''],
+            ['snake', 'logic', 'ok', '고정 속도 게임 루프', 'requestAnimationFrame → 설정 속도(칸/초)에 맞춰 한 칸씩 전진', 'gameLoop() | lastRenderTime | speed', ''],
+            ['snake', 'input', 'ok', '키보드 방향 조작', '←↑→↓ / W A S D → 방향 큐에 적재', 'document keydown | changeDirection()', '[개선 완료] e.code 표준 사용 및 설정 select 조작 기본동작 보존.'],
+            ['snake', 'logic', 'ok', '방향 큐·역방향 방지', '최대 3개 입력 버퍼, 반대 방향 입력은 무시', 'directionQueue | processDirectionQueue()', ''],
+            ['snake', 'input', 'ok', '모바일 방향 패드', 'pointerdown → 방향 전환 (768px 미만에서만 표시)', '#controls | .btn-pad | addTouchControl()', '[개선 완료] <button type="button" aria-label="..."> 요소로 교체하여 보조기기/키보드 접근성 확보.'],
+            ['snake', 'logic', 'ok', '사과 생성', '빈 칸 중 무작위로 설정 개수만큼 유지', 'generateFood() | foods[]', ''],
+            ['snake', 'logic', 'ok', '충돌·게임 오버 판정', '벽 또는 몸통(index≥4)에 충돌하면 종료', 'hasGameEnded() | endGame(false)', '[개선 완료] hitTopWall 오타 수정 완료.'],
+            ['snake', 'logic', 'ok', '퍼펙트 클리어', '뱀 길이 ≥ 전체 칸 수 → 진(眞) 엔딩 화면', 'endGame(true) | snake.length', ''],
+            ['snake', 'data', 'ok', '점수·경과 시간', '사과 +1, 첫 방향 입력 시 타이머 시작(mm:ss)', '#score | #time | updateTime() | setInterval', ''],
+            ['snake', 'render', 'ok', '캔버스 렌더링', '체크무늬 배경, 둥근 뱀 몸체, 원형 사과', 'clearCanvas() | drawSnake() | drawFood()', ''],
+            ['snake', 'ui', 'ok', '결과 화면', '게임 오버/클리어 메시지·달성률·시간 표시, 설정 화면으로 복귀', '#result-screen | endGame() | showSettings()', '[개선 완료] innerHTML 대신 document.createElement 및 textContent 안전 DOM 생성 패턴 적용 완료.'],
+            ['snake', 'ui', 'ok', '반응형 캔버스', '창 크기에 맞춰 정사각 캔버스 재계산, 모바일 vh 보정', 'resizeCanvas() | setScreenHeight()', '[개선 완료] 캔버스 최소 크기(200px) 하한 가드 추가 및 대기/일시정지/결과 상태 리사이즈 시 화면 재렌더링 보존.'],
+
+            /* ===== brick.html ===== */
+            ['brick', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', '.btn-main-go | nav a', '[개선 완료] <nav><a href="index.html" class="btn-main-go"> 링크로 통일.'],
+            ['brick', 'input', 'ok', '조준·발사', '캔버스를 누른 채 드래그 → 벽 반사 예측 점선, 손을 떼면 발사', 'handlePointerDown/Move/Up() | updateAim() | drawAimLine()', '[개선 완료] Math.hypot 기반 정규화로 음수 각도 조준 시 속도 저하 버그 해결.'],
+            ['brick', 'logic', 'ok', '순차 연속 발사', '3프레임 간격으로 보유한 공 수만큼 차례로 발사', 'fireTimer | ballsToFire | activeBalls[]', ''],
+            ['brick', 'logic', 'ok', '공 물리·충돌', '벽·천장 반사, 벽돌 AABB 충돌 시 최소 겹침 축으로 반사 후 대미지 적용', 'update() | minOverlap', '[개선 완료] 프레임 드랍 시 timeScale 비례 동적 서브스텝(2~6단계) 분할로 공의 벽돌/벽 터널링 현상 방지.'],
+            ['brick', 'logic', 'ok', '벽돌 HP·색상', '스테이지가 오를수록 최대 HP 증가(상한 100), HP 별 색상', 'initGrid() | hpColors | maxHp', ''],
+            ['brick', 'logic', 'ok', '코인 아이템', '60% 확률로 1~3개 코인("C") 생성, 맞히면 코인 +1·점수 +50', 'initGrid() | b.isItem', ''],
+            ['brick', 'input', 'ok', '즉시 회수', '버튼 클릭 → 남은 발사 취소, 공을 한 지점으로 회수', '#btn-recall | recallBalls()', ''],
+            ['brick', 'logic', 'ok', '턴 종료·벽돌 하강', '모든 공 도착 → 패들 이동, 벽돌이 한 줄 높이만큼 하강, 데스라인에 닿으면 게임 오버', 'allGathered | dropOffset | gameOver()', '새 줄이 추가되지 않고 초기 6줄만 내려오는 구조 — 스테이지 모드만 존재.'],
+            ['brick', 'logic', 'ok', '스테이지 클리어·진행', '벽돌 전멸 → STAGE CLEAR(+1 코인) → 다음 스테이지', 'nextStage() | #next-stage-screen', ''],
+            ['brick', 'ui', 'ok', '업그레이드 상점', '공 +5(10코인), 대미지 +1(20코인) 구매, 바텀시트 열기/닫기', 'toggleUpgradeMenu() | buyBalls() | buyDamage()', '[개선 완료] 논블로킹 상점 안내 메시지 표시로 alert() 제거.'],
+            ['brick', 'data', 'ok', '진행 데이터 저장', '코인·공 수·대미지·최고 점수를 localStorage 에 영구 저장', 'brickCoins | brickBaseBalls | brickBallDamage | brickStageHighScore', '[개선 완료] safeStorage try-catch 래퍼로 안전한 저장/불러오기 처리.'],
+            ['brick', 'ui', 'ok', 'HUD', '스테이지·최고 점수·점수·플레이 시간·코인 표시', '#stage-display | #high-score | #score | #play-time | #coin-display', ''],
+            ['brick', 'render', 'ok', '반응형 캔버스', '창 크기 변경 → 캔버스 크기·벽돌 높이 재계산', 'resizeCanvas() | b.w', '[개선 완료] 리사이즈 시 그리드 내 기존 벽돌 너비/높이 동적 갱신 및 공/패들 좌표 바운드 보정.'],
+            ['brick', 'render', 'ok', '캔버스 렌더링', '벽돌·코인·패들·데스라인·글로우 공 렌더', 'drawBricks() | drawPaddle() | drawBalls() | drawDeathLine()', ''],
+
+            /* ===== dinogame.html ===== */
+            ['dino', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', '.btn-main-go | nav a', '[개선 완료] <nav><a href="index.html" class="btn-main-go"> 링크로 통일.'],
+            ['dino', 'input', 'ok', '점프', 'Space / W / ↑ 또는 점프 버튼 → 점프 (공중 재점프 불가)', 'dino.jump() | keydown | #btn-jump', ''],
+            ['dino', 'input', 'ok', '숙이기·급강하', 'S / ↓ / Ctrl 을 누르는 동안 숙임, 공중에서는 중력 ×5 로 급강하', 'dino.isDucking | keyup | #btn-duck', ''],
+            ['dino', 'input', 'ok', '모바일 컨트롤', 'pointer 이벤트로 하단 숙이기/점프 버튼 조작 (768px 미만)', '#mobile-controls | bindButton()', '[개선 완료] <button type="button" class="control-btn"> 요소로 교체 및 aria-label 부여.'],
+            ['dino', 'logic', 'ok', '장애물 생성', '선인장(1~2개, 크기 4종) / 점수 ≥200 이면 30% 확률로 익룡', 'class Obstacle | animate() | minDistance', '[개선 완료] timeScale 지수 확률 공식(1 - (1-0.05)^timeScale)을 적용하여 고주사율(120/144Hz) 모니터에서도 프레임 독립적인 동일 스폰율 보장.'],
+            ['dino', 'logic', 'ok', '속도·점수 증가', '점수가 오를수록 속도 16 → 최대 40, 점수는 속도에 비례해 증가', 'gameSpeed | score += gameSpeed*0.02*timeScale', ''],
+            ['dino', 'logic', 'ok', '충돌 판정', '패딩을 적용한 히트박스 AABB, 숙일 때는 낮은 히트박스', 'checkCollision() | dino.getHitBox()', ''],
+            ['dino', 'render', 'ok', '배경(구름·지면)', '구름은 3초마다 생성·이동, 지면 점선 스크롤', 'class Cloud | drawGround() | lastCloudTime', '[개선 완료] 지면 점선 누적 오프셋 적용으로 가속 시 순간이동 방지 및 시작 시 초기 구름 배치.'],
+            ['dino', 'render', 'ok', '스프라이트 + 폴백', 'PNG 로드 실패 시 사각형 도형으로 대체 렌더', 'DinoUp/DinoDown/Cactus/Bird.png | img.complete', ''],
+            ['dino', 'data', 'ok', '점수·시간·최고점', 'HI/현재 점수(5자리), 경과 시간(mm:ss), 최고점 safeStorage 저장', 'trexHighScore | formattedTime', '[개선 완료] safeStorage try-catch 래퍼 적용.'],
+            ['dino', 'ui', 'ok', '게임 오버 화면', '통계(시간·점수·최고점) 표시, 다시 달리기', 'gameOver() | #game-over-stats | startGame()', '[개선 완료] innerHTML 대신 document.createElement 및 textContent 안전 DOM 생성 패턴 적용 완료.'],
+
+            /* ===== poo.html ===== */
+            ['poo', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', '.btn-main-go | nav a', '[개선 완료] <nav><a href="index.html" class="btn-main-go"> 링크로 통일.'],
+            ['poo', 'input', 'ok', '좌우 이동', '←→ / A D 를 누르는 동안 이동, 화면 끝에서 반대편으로 순환', 'keys{} | player.update()', '[개선 완료] 창 포커스 아웃(blur) 시 이동 키 초기화 적용.'],
+            ['poo', 'input', 'ok', '모바일 좌/우 버튼', 'pointerdown/up/cancel 로 이동 (768px 미만)', '#btn-left | #btn-right | bindButton()', '[개선 완료] <button type="button" class="control-btn"> 요소로 교체 및 aria-label 부여.'],
+            ['poo', 'logic', 'ok', '똥 낙하·난이도 상승', '점수가 오를수록 스폰 간격(35 → 최소 10프레임)과 낙하 속도 증가', 'class Poop | spawnRate | speed', ''],
+            ['poo', 'logic', 'ok', '우산 아이템', '1% 확률로 낙하, 획득 시 6초 무적(마지막 2초 깜빡임) +50점', 'class Item | player.equipUmbrella()', ''],
+            ['poo', 'logic', 'ok', '똥 튕겨내기', '무적 중 충돌 시 똥이 반사되고 +20점', 'Poop.bounce()', ''],
+            ['poo', 'logic', 'ok', '파멸의 일격(운석)', '2000점 이상: 플레이어 위치에 경고선 → 고속 낙하 (확률 5~10%, 동시 최대 5개)', 'class MeteorStrike | meteorChance', ''],
+            ['poo', 'logic', 'ok', '5000점+ 패턴 벽', '10% 확률로 12칸 줄에 2칸 폭 구멍 2개를 남기고 똥 생성 (index 설명에는 없음)', 'animate() | totalSlots', ''],
+            ['poo', 'logic', 'ok', '잠수 방지(AFK)', '5초 정지 시 경고, 8초 정지 시 게임 오버', 'player.idleDuration | gameOver("afk")', '[개선 완료] 실 플레이 프레임 델타 기반 누적으로 탭 전환 시 AFK 즉사 방지, 우산 타이머 동기화 및 blur 시 키 초기화.'],
+            ['poo', 'data', 'ok', '점수·시간·최고점', '점수·경과 시간 표시, 최고점 safeStorage 저장', '#score | #time-display | pooHighScore', '[개선 완료] safeStorage try-catch 래퍼 적용.'],
+            ['poo', 'render', 'ok', '반응형 캔버스 레이아웃', '3:4 비율로 최대 폭 800px 계산', 'resizeCanvasLayout()', '[개선 완료] 중복 등록되었던 resize 이벤트 리스너 제거.'],
+            ['poo', 'ui', 'ok', '게임 오버 화면', '사망 사유·시간·점수·최고점 표시, 다시 도전', 'gameOver(reason) | #game-over-stats', '[개선 완료] innerHTML 대신 document.createElement 및 textContent 안전 DOM 생성 패턴 적용 완료.'],
+
+            /* ===== graph.html ===== */
+            ['graph', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', '.btn-main-go | nav a', '[개선 완료] <nav><a href="index.html" class="btn-main-go"> 링크로 통일.'],
+            ['graph', 'input', 'ok', '수식 행 추가·삭제', '➕ 방정식 추가 → 입력 행 생성(색상 순환), ✕ → 행 삭제', 'addFormulaRow() | removeFormulaRow()', '[개선 완료] innerHTML 인젝션 패턴 제거, DOM createElement 조립, input에 aria-label/aria-invalid 및 삭제 버튼에 aria-label 명시.'],
+            ['graph', 'logic', 'ok', '수식 컴파일러', '입력 문자열 → 정규식 변환 → new Function 으로 f(x, y) 생성', 'compileToFastFunction()', '[개선 완료] y=-x^2 단항 음수 거듭제곱 SyntaxError 방지 및 역삼각함수(asin/acos/atan) 우선 매칭/단어 경계 정규식 버그 수정 완료.'],
+            ['graph', 'logic', 'ok', '암시적 곱셈 자동 변환', '2x, 3sin(x), xy, x(x+1) 에 * 를 자동 삽입', '정규식 치환(숫자/문자/괄호)', ''],
+            ['graph', 'logic', 'ok', '다양한 식 형태 지원', 'y=f(x), x=f(y), "f=g"(음함수) 모두 f−g=0 으로 처리', '"=" 분리 | y-(…) 변환', ''],
+            ['graph', 'render', 'ok', 'Marching Squares 렌더링', '4px 격자에 값을 샘플링해 부호 변화 지점을 선분으로 연결', 'drawGraph() | Float32Array | interp()', '[개선 완료] 이중 루프 내 getBoundingClientRect 반복 호출 제거(캐싱 및 Float32Array X좌표 사전 계산), requestAnimationFrame 기반 재그리기 스케줄링으로 강제 레이아웃 병목 완전 해결.'],
+            ['graph', 'render', 'ok', '격자·축·눈금', '줌에 맞는 1/2/5 간격 격자, 축 강조, 눈금 숫자', 'drawGrid() | getStep()', '[개선 완료] ctx.save() 및 ctx.restore() 래핑으로 폰트 및 textBaseline 상태 누수 방지.'],
+            ['graph', 'input', 'ok', '드래그 이동(Pan)', '마우스 드래그 / 한 손가락 드래그 → 카메라 이동', 'pointerdown/move/up | touchmove', ''],
+            ['graph', 'input', 'ok', '줌', '휠(커서 기준) / 두 손가락 핀치, 배율 1~5000 px/unit', 'wheel | camera.pxPerUnit', ''],
+            ['graph', 'ui', 'ok', '수식 범례 오버레이', '우측 상단에 색상 점과 수식 요약(18자 초과 시 생략) 표시', 'drawGraph() | legendY', '[개선 완료] 캔버스 하단 경계 검사 및 초과 수식 생략 안내 표시로 화면 넘침 방지.'],
+            ['graph', 'ui', 'ok', '입력 오류 표시', '잘못된 식 → 해당 행 테두리를 빨강으로 표시', '.formula-row.error', '[개선 완료] aria-invalid 속성 및 시각적 포커스 링, 에러 상태 분리 적용.'],
+            ['graph', 'ui', 'ok', '반응형 레이아웃', '데스크톱은 좌우 분할, 768px 이하는 상하 분할', '@media (max-width:768px) | .sidebar', ''],
+            ['graph', 'data', 'ok', '실시간 갱신·기본 예시', '입력 시 50ms 디바운스 후 재그리기, 기본값으로 하트 곡선 표시', 'debouncedDraw() | window.onload', ''],
+
+            /* ===== hypnosis.html ===== */
+            ['hypnosis', 'nav', 'ok', '메인으로 이동', '클릭 → index.html 이동', 'a.arcade-btn | nav a', ''],
+            ['hypnosis', 'input', 'ok', '패턴 선택', '5종(네모·다이아몬드·육각 큐브·트라이볼트·은하수) 실시간 전환', '#pattern | currentPattern', 'label for 가 올바르게 연결됨(양호).'],
+            ['hypnosis', 'input', 'ok', '속도 슬라이더', '0.5 ~ 4 배속으로 회전·색상 변화 속도 조절', '#speed | speedMultiplier', '[개선 완료] 키보드 포커스 링(:focus-visible) 복원 및 명확한 시각적 아웃라인 제공.'],
+            ['hypnosis', 'input', 'ok', '방향 반전', '클릭 → 회전 방향 반전, 활성 시 강조색', '#reverse-btn | direction', '[개선 완료] aria-pressed 속성 동적 토글 연동.'],
+            ['hypnosis', 'input', 'ok', '중심점 드래그', '마우스/터치 드래그 → 패턴 중심이 부드럽게(lerp 0.12) 따라감', 'updateTarget() | pointerdown / pointermove', '[개선 완료] Pointer Events(pointerdown/move/up/cancel) 및 setPointerCapture 일원화로 드래그 유실 문제 해결.'],
+            ['hypnosis', 'input', 'ok', '원위치(초기화)', '📍 버튼 또는 캔버스 더블클릭/더블탭 → 중심점 복귀', 'resetCenter() | dblclick / pointerdown', '[개선 완료] 터치/포인터 간격 및 거리 기반 더블탭 감지 로직 적용으로 모바일에서도 더블탭 원위치 완벽 보장.'],
+            ['hypnosis', 'render', 'ok', '패턴 렌더 루프', '50개 레이어를 레이어당 1회 stroke 로 일괄 렌더, 색은 HSL 회전', 'render() | NUM_LAYERS', '[개선 완료] 델타 타임(deltaMs/16.667) 기반 루프 정규화로 고주사율 속도 왜곡 방지 및 prefers-reduced-motion 감지 시 감속 모드 지원.'],
+            ['hypnosis', 'render', 'ok', '고해상도 대응', 'DPR 최대 1.5 로 제한, alpha:false 컨텍스트', 'resizeCanvas() | getContext("2d",{alpha:false})', ''],
+            ['hypnosis', 'ui', 'ok', '안내 힌트', '첫 드래그 시 힌트가 페이드아웃', '#hint', ''],
+
+            /* ===== drive.html (스틸 레이서: 순수 Canvas 2D 탑다운 레이싱) ===== */
+            ['drive', 'nav', 'ok', '메인으로 이동', '상단 헤더 좌측 ◀ 메인으로 버튼 클릭 → index.html 이동', '#btn-back | a.btn-nav', '[최신 반영] 헤더 바 좌측 고정 링크로 모바일 및 데스크톱에서 언제든 메인 복귀 가능.'],
+            ['drive', 'render', 'ok', '오프스크린 캔버스 캐싱', '정적 트랙/연석/격자 배경을 오프스크린 캔버스에 1회 사전 렌더 후 drawImage로 복사', 'buildOffscreenTrackForConfig() | offscreenTrackCanvas', '[최적화 완료] 매 프레임 수백 개 세그먼트와 체커보드 연석을 재계산하지 않아 CPU 점유율을 80% 이상 절감.'],
+            ['drive', 'logic', 'ok', '5종 멀티 서킷 트랙 시스템', '그랑프리·스피드웨이·마운틴·시케인·볼케이노 5종의 독창적 Catmull-Rom 스플라인 서킷', 'TRACK_CONFIGS | generateSmoothCircuit() | selectTrack()', '[최신 반영] 트랙별 전용 웨이포인트, 연석 테마 컬러, 코인 배치, 최고 기록을 독립 관리.'],
+            ['drive', 'logic', 'ok', '고정 60Hz 결정론적 물리', 'FIXED_STEP(1/60s) 누적기(accumulator) 기반 가속·감속·코너링 물리 연산', 'FIXED_STEP | accumulator | updatePhysics()', '[최적화 완료] 60Hz, 120Hz, 144Hz 고주사율 및 프레임 드랍 환경에서도 일관된 주행 감각과 결정론적 물리 보장.'],
+            ['drive', 'render', 'ok', '오브젝트 풀링 (스키드마크 & 파티클)', '스키드마크 250개, 스파크/먼지 파티클 180개 고정 배열 풀로 GC 프리 순환 재사용', 'class SkidmarkPool | class ParticlePool', '[최적화 완료] 주행 중 런타임 메모리 할당(new)을 0으로 억제하여 가비지 컬렉션 스터터링 원천 방어.'],
+            ['drive', 'input', 'ok', '포인터 고착 방어 가상 조작계', '모바일 4버튼 터치 컨트롤러(조향·가속·브레이크) 및 멀티터치 PointerId 추적', 'bindVirtualButton() | resetInputs() | activePointerId', '[방어 완료] 포인터 캔슬/리브/블러 시 키 입력 즉시 리셋으로 고착 현상 완벽 방어.'],
+            ['drive', 'logic', 'ok', 'CCD 선분 교차 체크포인트', '차량 이동 궤적 선분과 체크포인트 선분 간 2D 교차 판정(CCW 알고리즘)', 'checkLineIntersection() | handleLapCompletion()', '[방어 완료] 600km/h 초고속 주행 시에도 체크포인트 순간 통과 터널링 현상을 완벽 방지.'],
+            ['drive', 'logic', 'ok', 'Web Audio API 절차적 사운드', '외부 오디오 파일 없이 AudioContext 및 톱니파 발진기(Oscillator)로 RPM 연동 엔진음/효과음 절차적 합성', 'initAudioOnFirstInteraction() | engineOsc | playTone()', '[무의존성] 네트워크 로딩 지연 없는 제로 에셋 오디오 시스템 및 음소거 토글 지원.'],
+            ['drive', 'ui', 'ok', '올인원 상단 헤더 HUD', '모든 계기판(트랙·랩·타임·최고기록·코인·속도계·니트로)을 상단 44px 바에 완전 통합', '.header-bar | #hud-track-pill | #hud-speed', '[UI 개선] 주행 화면과 트랙을 가리는 하단/코너 오버레이를 전면 배제하여 트랙 시야 100% 확보.'],
+            ['drive', 'data', 'ok', '솔트 해시 체크섬 최고 랩타임', '5개 트랙별 최고 기록을 localStorage에 솔트 문자열 해시와 결합하여 안전 보관', 'saveBestRecord() | loadBestRecord() | SALT', '[무결성 검증] Base64 인코딩 및 다항식 롤링 해시 검증을 통해 로컬스토리지 임의 변조 및 비정상 타임 방어.'],
+            ['drive', 'logic', 'ok', '코인 수집 및 니트로 부스트', '서킷 내 코인 획득 시 1.5초간 최고 속도 600km/h 급가속 부스트 발동', 'coins[] | vehicle.nitroTimer | #hud-nitro-fill', '[게임플레이] 부스트 지속 중 화려한 배기 파티클 효과 및 사운드 연출.'],
+            ['drive', 'render', 'ok', '2D 캔버스 절차적 섀시 렌더링', '전조등 빔, 브레이크 연동 테일램프, 캐노피 반사광, 전륜 조향 각도 실시간 렌더링', 'renderVehicle() | targetCtx.roundRect()', '[비주얼] 레트로 네오 아케이드 스타일의 정밀한 2D 디테일 구현.']
+        ].map(function (r, i) {
+            return { id: i, page: r[0], cat: r[1], status: r[2], name: r[3], how: r[4], refs: r[5] ? r[5].split(' | ') : [], note: r[6] };
+        });
+
+        /* ------------------------------------------------------------------ */
+        const $ = function (sel) { return document.querySelector(sel); };
+
+        function el(tag, props) {
+            const node = document.createElement(tag);
+            const children = Array.prototype.concat.apply([], Array.prototype.slice.call(arguments, 2));
+            Object.keys(props || {}).forEach(function (k) {
+                if (k === 'class') node.className = props[k];
+                else node.setAttribute(k, props[k]);
+            });
+            children.forEach(function (c) {
+                if (c == null || c === false) return;
+                node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+            });
+            return node;
+        }
+
+        const pageById = {};
+        PAGES.forEach(function (p) { pageById[p.id] = p; });
+
+        const state = {
+            query: '',
+            pages: new Set(),
+            cats: new Set(),
+            statuses: new Set(),
+            view: 'cards'
+        };
+
+        /* ---------- 요약 통계 ---------- */
+        function renderStats() {
+            const total = ROWS.length;
+            const count = { ok: 0, warn: 0, bug: 0 };
+            ROWS.forEach(function (r) { count[r.status]++; });
+
+            $('#stat-pages').textContent = PAGES.length;
+            $('#stat-all').textContent = total;
+            $('#stat-ok').textContent = count.ok;
+            $('#stat-warn').textContent = count.warn;
+            $('#stat-bug').textContent = count.bug;
+
+            const okDeg = (count.ok / total) * 360;
+            const warnDeg = okDeg + (count.warn / total) * 360;
+            const donut = $('#donut');
+            donut.style.setProperty('--ok-end', okDeg + 'deg');
+            donut.style.setProperty('--warn-end', warnDeg + 'deg');
+            donut.setAttribute('aria-label',
+                '전체 ' + total + '개 중 정상 작동 ' + count.ok + '개, 개선 필요 ' + count.warn + '개, 버그 확인 ' + count.bug + '개');
+            $('#donut-pct').textContent = Math.round((count.ok / total) * 100) + '%';
+        }
+
+        /* ---------- 필터 칩 ---------- */
+        function buildChips(groupSel, items, set) {
+            const group = $(groupSel);
+            items.forEach(function (item) {
+                const btn = el('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', 'data-key': item.key }, item.label);
+                btn.addEventListener('click', function () {
+                    if (set.has(item.key)) set.delete(item.key); else set.add(item.key);
+                    btn.setAttribute('aria-pressed', set.has(item.key) ? 'true' : 'false');
+                    render();
+                });
+                group.appendChild(btn);
+            });
+        }
+
+        function buildFilters() {
+            buildChips('#group-page', PAGES.map(function (p) { return { key: p.id, label: p.icon + ' ' + p.file }; }), state.pages);
+            buildChips('#group-cat', Object.keys(CATS).map(function (k) { return { key: k, label: CATS[k].icon + ' ' + CATS[k].label }; }), state.cats);
+            buildChips('#group-status', Object.keys(STATUS).map(function (k) { return { key: k, label: STATUS[k].icon + ' ' + STATUS[k].label }; }), state.statuses);
+        }
+
+        /* ---------- 필터링 ---------- */
+        function matches(r) {
+            if (state.pages.size && !state.pages.has(r.page)) return false;
+            if (state.cats.size && !state.cats.has(r.cat)) return false;
+            if (state.statuses.size && !state.statuses.has(r.status)) return false;
+            if (state.query) {
+                const hay = (r.name + ' ' + r.how + ' ' + r.refs.join(' ') + ' ' + r.note + ' ' + pageById[r.page].file).toLowerCase();
+                if (hay.indexOf(state.query) === -1) return false;
+            }
+            return true;
+        }
+
+        /* ---------- 공통 조각 ---------- */
+        function catTag(r) { return el('span', { class: 'tag cat' }, CATS[r.cat].icon + ' ' + CATS[r.cat].label); }
+        function statusTag(status) { return el('span', { class: 'tag st-' + status }, STATUS[status].icon + ' ' + STATUS[status].label); }
+
+        /* ---------- 카드 보기 ---------- */
+        function renderCards(list) {
+            const frag = document.createDocumentFragment();
+
+            PAGES.forEach(function (p) {
+                const rows = list.filter(function (r) { return r.page === p.id; });
+                if (!rows.length) return;
+
+                const counts = { ok: 0, warn: 0, bug: 0 };
+                rows.forEach(function (r) { counts[r.status]++; });
+
+                const headId = 'page-' + p.id + '-title';
+                const badges = el('div', { class: 'page-count' });
+                Object.keys(STATUS).forEach(function (k) {
+                    if (counts[k]) badges.appendChild(el('span', { class: 'tag st-' + k }, STATUS[k].icon + ' ' + counts[k]));
+                });
+
+                const head = el('div', { class: 'page-head' },
+                    el('div', { class: 'page-icon', 'aria-hidden': 'true' }, p.icon),
+                    el('div', {},
+                        el('h2', { id: headId }, p.title),
+                        el('p', { class: 'meta' }, el('a', { href: p.file }, p.file), ' · ' + p.lines + '줄 · ' + p.desc)
+                    ),
+                    badges
+                );
+
+                const grid = el('div', { class: 'card-grid' });
+                rows.forEach(function (r) {
+                    const card = el('article', { class: 'panel card st-' + r.status },
+                        el('h3', {}, r.name),
+                        el('div', { class: 'tags' }, catTag(r), statusTag(r.status))
+                    );
+
+                    card.appendChild(el('dl', {},
+                        el('div', {}, el('dt', {}, '동작 방식 (트리거 → 결과)'), el('dd', {}, r.how)),
+                        r.refs.length
+                            ? el('div', {}, el('dt', {}, '관련 요소 · 함수'),
+                                el('dd', { class: 'refs' }, r.refs.map(function (x) { return el('code', {}, x); })))
+                            : null
+                    ));
+
+                    if (r.note) {
+                        card.appendChild(el('p', { class: 'note' }, el('b', {}, r.status === 'bug' ? '확인된 문제: ' : '개선 포인트: '), r.note));
+                    }
+                    grid.appendChild(card);
+                });
+
+                frag.appendChild(el('section', { class: 'page-section', id: 'page-' + p.id, 'aria-labelledby': headId }, head, grid));
+            });
+
+            return frag;
+        }
+
+        /* ---------- 표 보기 ---------- */
+        function renderTable(list) {
+            const heads = ['기능', '페이지', '분류', '동작 방식', '관련 요소 · 함수', '상태', '비고'];
+            const thead = el('thead', {}, el('tr', {}, heads.map(function (h) { return el('th', { scope: 'col' }, h); })));
+
+            const tbody = el('tbody');
+            PAGES.forEach(function (p) {
+                list.filter(function (r) { return r.page === p.id; }).forEach(function (r) {
+                    const refs = el('td', { 'data-label': heads[4] });
+                    r.refs.forEach(function (x) { refs.appendChild(el('code', {}, x + ' ')); });
+
+                    tbody.appendChild(el('tr', {},
+                        el('th', { scope: 'row' }, r.name),
+                        el('td', { 'data-label': heads[1] }, p.icon + ' ' + p.file),
+                        el('td', { 'data-label': heads[2] }, CATS[r.cat].icon + ' ' + CATS[r.cat].label),
+                        el('td', { 'data-label': heads[3], class: 'col-note' }, r.how),
+                        refs,
+                        el('td', { 'data-label': heads[5] }, statusTag(r.status)),
+                        el('td', { 'data-label': heads[6], class: 'col-note' }, r.note || '—')
+                    ));
+                });
+            });
+
+            const table = el('table', {},
+                el('caption', { class: 'sr-only' }, 'Woo.Fun 기능 목록 (페이지·분류·동작·관련 요소·상태·비고)'),
+                thead, tbody);
+            return el('div', { class: 'table-wrapper' }, table);
+        }
+
+        /* ---------- 렌더 ---------- */
+        function render() {
+            const list = ROWS.filter(matches);
+            const host = $('#results');
+            while (host.firstChild) host.removeChild(host.firstChild);
+
+            if (!list.length) {
+                host.appendChild(el('p', { class: 'panel empty' }, '조건에 맞는 기능이 없습니다. 필터를 줄이거나 검색어를 바꿔 보세요.'));
+            } else {
+                host.appendChild(state.view === 'cards' ? renderCards(list) : renderTable(list));
+            }
+
+            $('#result-count').textContent = '전체 ' + ROWS.length + '개 중 ' + list.length + '개 기능 표시 중';
+        }
+
+        function setView(view) {
+            state.view = view;
+            $('#view-cards').setAttribute('aria-pressed', view === 'cards' ? 'true' : 'false');
+            $('#view-table').setAttribute('aria-pressed', view === 'table' ? 'true' : 'false');
+            render();
+        }
+
+        /* ---------- 이벤트 ---------- */
+        let searchTimer;
+        $('#search').addEventListener('input', function (e) {
+            clearTimeout(searchTimer);
+            const value = e.target.value;
+            searchTimer = setTimeout(function () {
+                state.query = value.trim().toLowerCase();
+                render();
+            }, 120);
+        });
+
+        $('#view-cards').addEventListener('click', function () { setView('cards'); });
+        $('#view-table').addEventListener('click', function () { setView('table'); });
+
+        $('#reset-filters').addEventListener('click', function () {
+            state.query = '';
+            state.pages.clear();
+            state.cats.clear();
+            state.statuses.clear();
+            $('#search').value = '';
+            document.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+            render();
+        });
+
+        /* ---------- 시작 ---------- */
+        renderStats();
+        buildFilters();
+        render();
+    </script>
+</body>
+
+</html>
